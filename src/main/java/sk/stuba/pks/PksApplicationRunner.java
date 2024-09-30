@@ -24,8 +24,8 @@ public class PksApplicationRunner implements ApplicationRunner {
                 .setPayloadLength(new byte[]{(byte) 0xAF, 0})
                 .setPayload(new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
         Packet packet = packetB.build();
-        System.out.println(packet);
-        System.out.println(PacketUtils.bytesToHex(packet.getBytes()));
+        log.info(packet);
+        log.info(PacketUtils.bytesToHex(packet.getBytes()));
     }
 
     /*
