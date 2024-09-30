@@ -74,23 +74,23 @@ public class Packet {
 
     public byte[] getBytes() {
         byte[] bytes = new byte[4 + 4 + 1 + 2 + payload.length + 2];
-        System.arraycopy(sessionId, 0, bytes, 0, 4);
-        System.arraycopy(sequenceNumber, 0, bytes, 4, 4);
-        bytes[8] = flags;
-        System.arraycopy(payloadLength, 0, bytes, 9, 2);
-        System.arraycopy(payload, 0, bytes, 11, payload.length);
+        populateBytesWithoutChecksum(bytes);
         System.arraycopy(checksum, 0, bytes, 11 + payload.length, 2);
         return bytes;
     }
 
     public byte[] getBytesWithoutChecksum() {
         byte[] bytes = new byte[4 + 4 + 1 + 2 + payload.length];
+        populateBytesWithoutChecksum(bytes);
+        return bytes;
+    }
+
+    private void populateBytesWithoutChecksum(byte[] bytes) {
         System.arraycopy(sessionId, 0, bytes, 0, 4);
         System.arraycopy(sequenceNumber, 0, bytes, 4, 4);
         bytes[8] = flags;
         System.arraycopy(payloadLength, 0, bytes, 9, 2);
         System.arraycopy(payload, 0, bytes, 11, payload.length);
-        return bytes;
     }
 
     public String toString() {
