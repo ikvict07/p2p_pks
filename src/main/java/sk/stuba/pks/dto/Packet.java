@@ -3,11 +3,13 @@ package sk.stuba.pks.dto;
 import lombok.Data;
 import sk.stuba.pks.util.PacketUtils;
 
+import java.util.Arrays;
+
 @Data
 public class Packet {
     private byte[] sessionId; // 4 bytes
     private byte[] sequenceNumber; // 4 bytes
-    private byte flags; // 4 bits for ackFlag and 4 bits for payloadType
+    private byte flags; // 4 bits for ackFlag and 4 bits for payloadType : AckFlag: 00-None, 01-Ack, 10-Syn, 11-SynAck; PayloadType: 00-Data, 01-KeepAlive
     private byte[] payloadLength; // 2 bytes
     private byte[] payload; // 0-1476 bytes
     private byte[] checksum;
@@ -111,5 +113,22 @@ public class Packet {
                 PacketUtils.bytesToHex(checksum),
                 PacketUtils.bytesToHex(payload));
     }
-
+    public boolean isAck() {
+        return (getAckFlag() & 0x01) == 1;
+    }
+    public boolean isSyn() {
+        return (getAckFlag() & 0x02) == 2;
+    }
+    public boolean isSynAck() {
+        return (getAckFlag() & 0x03) == 3;
+    }
+    public boolean isData() {
+        return (getPayloadType() & 0x01) == 0;
+    }
+    public boolean isKeepAlive() {
+        return (getPayloadType() & 0x01) == 1;
+    }
+    public boolean isCorrupt() {
+        return Arrays.equals(checksum, PacketUtils.generateChecksum(this));
+    }
 }

@@ -2,6 +2,7 @@ package sk.stuba.pks.util;
 
 import sk.stuba.pks.dto.Packet;
 
+import java.util.Arrays;
 import java.util.zip.CRC32;
 
 public class PacketUtils {
@@ -23,5 +24,13 @@ public class PacketUtils {
                 (byte) (checksumValue >> 8),
                 (byte) checksumValue
         };
+    }
+
+    public static int bytesToInt(byte[] bytes) {
+        int result = 0;
+        for (byte b : bytes) {
+            result = result << 8 | (b & 0xFF);
+        }
+        return result;
     }
 }

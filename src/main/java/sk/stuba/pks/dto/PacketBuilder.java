@@ -36,7 +36,6 @@ public class PacketBuilder {
         return this;
     }
 
-
     public PacketBuilder setPayload(byte[] payload) {
         packet.setPayload(payload);
         checksum = checksum | 1 << 5;
@@ -59,5 +58,27 @@ public class PacketBuilder {
 
             default -> throw new IllegalStateException("Not all fields are set");
         };
+    }
+
+    public static Packet getPacketFromBytes(byte[] data) {
+        PacketBuilder packetBuilder = new PacketBuilder();
+        byte[] sessionId = new byte[] {data[0], data[1], data[2], data[3]};
+        byte[] sequenceNumber = new byte[] {data[4], data[5], data[6], data[7]};
+        byte flags = data[8];
+        byte ackFlag = (byte) (flags & 0x03);
+        byte payloadType = (byte) ((flags >> 2) & 0x03);
+        byte[] payloadLength = new byte[] {data[9], data[10]};
+        int payloadLengthInt = PacketUtils.bytesToInt(payloadLength);
+        byte[] payload = new byte[payloadLengthInt];
+        System.arraycopy(data, 11, payload, 0, payloadLengthInt);
+        byte[] checksum = new byte[] {data[11 + payloadLengthInt], data[12 + payloadLengthInt]};
+        return packetBuilder.setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag(ackFlag)
+                .setPayloadType(payloadType)
+                .setPayloadLength(payloadLength)
+                .setPayload(payload)
+                .setChecksum(checksum)
+                .build();
     }
 }
