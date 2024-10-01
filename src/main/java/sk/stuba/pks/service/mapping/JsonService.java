@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import sk.stuba.pks.model.Message;
-import sk.stuba.pks.model.MessageWrapper;
 
 import java.nio.charset.StandardCharsets;
 

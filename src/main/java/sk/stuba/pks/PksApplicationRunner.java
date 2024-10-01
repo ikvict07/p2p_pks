@@ -2,7 +2,6 @@ package sk.stuba.pks;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.Async;
@@ -14,6 +13,7 @@ import sk.stuba.pks.service.operationHandler.OperationHandler;
 import sk.stuba.pks.util.PacketUtils;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 @Log4j2
@@ -33,27 +33,24 @@ public class PksApplicationRunner implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         String operationToDo = "ask";
 
-        System.out.println("LISTENING ON PORT: " + "ff");
+        System.out.println("LISTENING ON PORT: " + args.getOptionValues("listenPort").getFirst());
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            while (!operationToDo.equalsIgnoreCase("exit")) {
-                operationToDo = reader.readLine();
-                operationHandler.handle(operationToDo);
-            }
-
-        } catch (Exception e) {
+            operationToDo = reader.readLine();
+            operationHandler.handle(operationToDo);
+        } catch (IOException e) {
             log.error("Couldnt read from console");
         }
-        PacketBuilder packetB = new PacketBuilder();
-        packetB.setSessionId(new byte[]{0, 0, 1, 1})
-                .setSequenceNumber(new byte[]{0, 15, 0, 1})
-                .setAckFlag((byte) 2)
-                .setPayloadType((byte) 0)
-                .setPayloadLength(new byte[]{(byte) 0xAF, 0})
-                .setPayload(new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
-        Packet packet = packetB.build();
-        log.info(packet);
-        log.info(PacketUtils.bytesToHex(packet.getBytes()));
+//        PacketBuilder packetB = new PacketBuilder();
+//        packetB.setSessionId(new byte[]{0, 0, 1, 1})
+//                .setSequenceNumber(new byte[]{0, 15, 0, 1})
+//                .setAckFlag((byte) 2)
+//                .setPayloadType((byte) 0)
+//                .setPayloadLength(new byte[]{(byte) 0xAF, 0})
+//                .setPayload(new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
+//        Packet packet = packetB.build();
+//        log.info(packet);
+//        log.info(PacketUtils.bytesToHex(packet.getBytes()));
     }
 
     /*

@@ -2,6 +2,7 @@ package sk.stuba.pks.util;
 
 import sk.stuba.pks.dto.Packet;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 
@@ -33,4 +34,11 @@ public class PacketUtils {
         }
         return result;
     }
+
+    public static int byteArrayToInt(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        return buffer.getInt();
+    }
+
+
 }

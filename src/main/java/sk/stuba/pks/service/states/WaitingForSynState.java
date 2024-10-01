@@ -26,6 +26,7 @@ public class WaitingForSynState implements ServerState {
     @Override
     public void start(ServerContext context) {
         Packet request = packetReceiver.receive();
+        System.out.println("Received packet: " + request);
         if (request == null) {
             log.info("Received packet is null");
             return;
@@ -45,14 +46,16 @@ public class WaitingForSynState implements ServerState {
         packetBuilder
                 .setSessionId(request.getSessionId())
                 .setSequenceNumber(request.getSequenceNumber())
-                .setAckFlag((byte) 0x10)
+                .setAckFlag((byte) 0b10)
+                .setPayloadType((byte) 3)
                 .setPayloadLength(new byte[]{0x00, 0x00})
                 .setPayload(new byte[0]);
         Packet response = packetBuilder.build();
         String address = synMessage.getAddress();
         int port = synMessage.getPort();
+        context.setClientAddress(address);
+        context.setClientPort(port);
         packetSender.sendPacket(response, address, port);
         context.setState(ServerStateType.WAITING_FOR_ACK);
-
     }
 }

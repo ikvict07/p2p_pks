@@ -9,6 +9,6 @@ public class WaitingForAckState implements ServerState{
 
     @Override
     public void start(ServerContext context) throws SocketException {
-
+        context.setState(ServerStateType.WAITING_FOR_REQUEST);
     }
 }

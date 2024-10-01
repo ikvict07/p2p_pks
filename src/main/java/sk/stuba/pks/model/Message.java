@@ -3,6 +3,8 @@ package sk.stuba.pks.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import sk.stuba.pks.dto.Packet;
 
 @JsonTypeInfo(
@@ -17,4 +19,14 @@ import sk.stuba.pks.dto.Packet;
 public interface Message {
     MessageType getType();
     Packet getParentPacket();
+
+
+    default public String toJson() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error converting SynMessage to JSON", e);
+        }
+    }
 }

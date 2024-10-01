@@ -1,5 +1,7 @@
 package sk.stuba.pks.service.states;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.stereotype.Service;
 import sk.stuba.pks.exception.SocketException;
 
@@ -10,6 +12,13 @@ public class ServerContext {
     private final WaitingForSynState waitingForSynState;
     private final WaitingForAckState waitingForAckState;
     private final WaitingForRequestState waitingForRequestState;
+
+    @Getter
+    @Setter
+    private String clientAddress;
+    @Getter
+    @Setter
+    private int clientPort;
 
     public ServerContext(WaitingForSynState waitingForSynState, WaitingForAckState waitingForAckState, WaitingForRequestState waitingForRequestState) {
         state = waitingForSynState;
