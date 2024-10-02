@@ -1,10 +1,11 @@
-package sk.stuba.pks.service.states;
+package sk.stuba.pks.service.states.server;
 
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
 import sk.stuba.pks.exception.SocketException;
 
+// TODO: add session id
 @Service
 public class ServerContext {
     private ServerState state;

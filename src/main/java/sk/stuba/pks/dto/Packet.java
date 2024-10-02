@@ -111,7 +111,7 @@ public class Packet {
                 getPayloadType(),
                 PacketUtils.bytesToHex(payloadLength),
                 PacketUtils.bytesToHex(checksum),
-                PacketUtils.bytesToHex(payload));
+                new String(payload));
     }
     public boolean isAck() {
         return (getAckFlag() & 0x01) == 1;

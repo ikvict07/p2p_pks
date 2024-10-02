@@ -1,7 +1,6 @@
-package sk.stuba.pks.service.states;
+package sk.stuba.pks.service.states.server;
 
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sk.stuba.pks.dto.Packet;
 import sk.stuba.pks.dto.PacketBuilder;
@@ -45,9 +44,9 @@ public class WaitingForSynState implements ServerState {
         PacketBuilder packetBuilder = new PacketBuilder();
         packetBuilder
                 .setSessionId(request.getSessionId())
-                .setSequenceNumber(request.getSequenceNumber())
-                .setAckFlag((byte) 0b10)
-                .setPayloadType((byte) 3)
+                .setSequenceNumber(new byte[]{0, 0, 0, 1})
+                .setAckFlag((byte) 0b11)
+                .setPayloadType((byte) 0)
                 .setPayloadLength(new byte[]{0x00, 0x00})
                 .setPayload(new byte[0]);
         Packet response = packetBuilder.build();

@@ -1,4 +1,4 @@
-package sk.stuba.pks.service.states;
+package sk.stuba.pks.service.states.server;
 
 public enum ServerStateType {
     WAITING_FOR_SYN,

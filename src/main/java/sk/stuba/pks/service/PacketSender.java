@@ -23,7 +23,7 @@ public class PacketSender implements Sender {
             InetAddress address = InetAddress.getByName(serverAddress);
             DatagramPacket datagramPacket = new DatagramPacket(data, data.length, address, serverPort);
             socket.send(datagramPacket);
-            System.out.println("Sent packet: " + packet);
+//            System.out.println("Sent packet: " + packet);
         } catch (Exception e) {
             e.printStackTrace();
         }
