@@ -39,11 +39,11 @@ public class SendingSynState implements ClientState {
 
         String payload = """
                 {
-                    "address": "localhost",
+                    "address": "%s",
                     "port": 9874,
                     "type": "syn"
                 }
-                """;
+                """.formatted(serverAddress);
         byte[] payloadBytes = payload.getBytes();
         byte[] payloadLength = new byte[]{(byte) (payloadBytes.length >> 8), (byte) payloadBytes.length};
         synPacketBuilder.setPayloadLength(payloadLength).setPayload(payloadBytes);
