@@ -33,7 +33,7 @@ public class SendingRequestState implements ClientState {
     @Override
     public void start(ClientContext context) throws SocketException {
         sessionId = context.getSessionId();
-        int packetNumber = 500_000;
+        int packetNumber = 2;
         Queue<Packet> packetsToSend = generatePacketList(packetNumber);
         Packet firstPacket = packetsToSend.poll();
         packetSender.sendPacket(firstPacket, context.getServerAddress(), context.getServerPort());
@@ -158,7 +158,7 @@ public class SendingRequestState implements ClientState {
                     .setSequenceNumber(copy)
                     .setAckFlag((byte) 0)
                     .setPayloadType((byte) 0);
-            String message = "A".repeat(1024);
+            String message = "A".repeat(i);
             String payload =
                     // language=JSON
                     """

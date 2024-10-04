@@ -39,8 +39,8 @@ public class SendingSynState implements ClientState {
 
         String payload = """
                 {
-                    "address": "10.10.52.53",
-                    "port": 9874,
+                    "address": "147.175.163.41",
+                    "port": 9875,
                     "type": "syn"
                 }
                 """;

@@ -40,5 +40,20 @@ public class PacketUtils {
         return buffer.getInt();
     }
 
+    public static byte[] incrementSequenceNumber(byte[] sequenceNumber) {
+        byte[] incrementedSequenceNumber = Arrays.copyOf(sequenceNumber, sequenceNumber.length);
+        for (int i = incrementedSequenceNumber.length - 1; i >= 0; i--) {
+            if (incrementedSequenceNumber[i] == (byte) 0xFF) {
+                incrementedSequenceNumber[i] = 0;
+            } else {
+                incrementedSequenceNumber[i]++;
+                break;
+            }
+        }
+        return incrementedSequenceNumber;
+    }
 
+    public static byte[] intToByteArray(int value) {
+        return ByteBuffer.allocate(2).putInt(value).array();
+    }
 }

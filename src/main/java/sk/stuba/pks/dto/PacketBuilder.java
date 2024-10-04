@@ -6,6 +6,8 @@ public class PacketBuilder {
     private final Packet packet = new Packet();
     private int checksum = 0;
 
+
+
     public PacketBuilder setSessionId(byte[] sessionId) {
         packet.setSessionId(sessionId);
         checksum = checksum | 1;
@@ -79,6 +81,68 @@ public class PacketBuilder {
                 .setPayloadLength(payloadLength)
                 .setPayload(payload)
                 .setChecksum(checksum)
+                .build();
+    }
+
+    public static Packet keepAlivePacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b00)
+                .setPayloadType((byte) 0b01)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
+                .build();
+    }
+
+    public static Packet ackKeepAlivePacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b01)
+                .setPayloadType((byte) 0b01)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
+                .build();
+    }
+
+    public static Packet synPacket(byte[] sessionId, byte[] sequenceNumber, int port, String address) {
+        PacketBuilder pb = new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b10)
+                .setPayloadType((byte) 0b00);
+        //language=JSON
+        String payload = """
+                {
+                    "type": "syn",
+                    "port": "%d",
+                    "address": "%s"
+  
+                }
+                """.formatted(port, address);
+        return pb.setPayloadLength(PacketUtils.intToByteArray(payload.length())).setPayload(payload.getBytes()).build();
+    }
+
+    public static Packet synAckPacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b11)
+                .setPayloadType((byte) 0b00)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
+                .build();
+    }
+
+    public static Packet ackPacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b01)
+                .setPayloadType((byte) 0b00)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
                 .build();
     }
 }
