@@ -20,15 +20,14 @@ import java.io.InputStreamReader;
 public class PksApplicationRunner implements ApplicationRunner {
 
     private final OperationHandler operationHandler;
-    private final Session session;
+
 
     @Value("${listenPort}")
     private int listenPort;
 
     @Autowired
-    public PksApplicationRunner(@DefaultOperationHandlerQualifier OperationHandler operationHandler, Session session) {
+    public PksApplicationRunner(@DefaultOperationHandlerQualifier OperationHandler operationHandler) {
         this.operationHandler = operationHandler;
-        this.session = session;
     }
 
     @Override
@@ -37,9 +36,8 @@ public class PksApplicationRunner implements ApplicationRunner {
         System.out.println("Listening on port: " + listenPort);
         System.out.println("What port send to?");
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            String input = reader.readLine();
-            int remotePort = Integer.parseInt(input);
-            session.createConnection("localhost", remotePort);
+            String operation = reader.readLine();
+            operationHandler.handle(operation);
         } catch (IOException e) {
             log.error("Couldnt read from console");
         }

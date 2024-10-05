@@ -54,6 +54,6 @@ public class PacketUtils {
     }
 
     public static byte[] intToByteArray(int value) {
-        return ByteBuffer.allocate(2).putInt(value).array();
+        return new byte[] {(byte) (value >> 8), (byte) value};
     }
 }

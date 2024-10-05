@@ -10,7 +10,8 @@ import sk.stuba.pks.dto.Packet;
 public class SimpleMessage implements Message {
     private String message;
     private int numberOfPackets;
-
+    private int localMessageId;
+    private int localMessageOffset;
     @JsonIgnore
     private Packet parentPacket;
 
