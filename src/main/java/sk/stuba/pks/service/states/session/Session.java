@@ -123,10 +123,13 @@ public class Session implements PacketReceiveListener {
         while (packet == null || !packet.isSyn()) {
             packet = packetReceiver.receive();
         }
+
         Message message = JsonService.fromPayload(packet.getPayload());
         if (!(message instanceof SynMessage synMessage)) {
             throw new RuntimeException("Received message is not SYN");
         }
+        System.out.println("Received SYN packet");
+        System.out.println(synMessage);
         sessionId = packet.getSessionId();
         context.setRemoteIp(synMessage.getAddress());
         context.setRemotePort(synMessage.getPort());
