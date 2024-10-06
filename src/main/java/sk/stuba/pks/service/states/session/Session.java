@@ -25,10 +25,11 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Queue;
+import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -177,10 +178,10 @@ public class Session implements PacketReceiveListener {
 
     public void sendMessage(String message) {
         new Thread(() -> {
-            Queue<Packet> packetsToSend = generatePacketList(message);
+            Deque<Packet> packetsToSend = generatePacketList(message);
             ScheduledExecutorService regularSender = Executors.newSingleThreadScheduledExecutor();
             ScheduledExecutorService periodicResender = Executors.newSingleThreadScheduledExecutor();
-            Queue<Packet> unconfirmed = new ConcurrentLinkedQueue<>();
+            Deque<Packet> unconfirmed = new ConcurrentLinkedDeque<>();
             int packetNumber = packetsToSend.size();
             Runnable regularSendTask = () -> {
                 if (!packetsToSend.isEmpty()) {
@@ -245,7 +246,7 @@ public class Session implements PacketReceiveListener {
 
     private int localMessageId = 0;
 
-    private Queue<Packet> generatePacketList(String message) {
+    private Deque<Packet> generatePacketList(String message) {
         byte[] byteMessage = message.getBytes();
         List<byte[]> byteMessages = new ArrayList<>();
         if (byteMessage.length > StaticDefinition.MESSAGE_MAX_SIZE.value) {
@@ -258,7 +259,7 @@ public class Session implements PacketReceiveListener {
         } else {
             byteMessages.add(byteMessage);
         }
-        Queue<Packet> list = new ConcurrentLinkedQueue<>();
+        Deque<Packet> list = new ConcurrentLinkedDeque<>();
         int numberOfPackets = byteMessages.size();
         for (int i = 0; i < numberOfPackets; i++) {
             PacketBuilder packetBuilder = new PacketBuilder();
@@ -299,7 +300,7 @@ public class Session implements PacketReceiveListener {
         confirmed.add(sequenceNumber);
     }
 
-    private Queue<Packet> generatePacketListForFile(String filePath) {
+    private Deque<Packet> generatePacketListForFile(String filePath) {
         String filename = Path.of(filePath).getFileName().toString();
         byte[] byteMessage;
         try {
@@ -322,7 +323,7 @@ public class Session implements PacketReceiveListener {
             byteMessages.add(byteMessage);
         }
 
-        Queue<Packet> list = new ConcurrentLinkedQueue<>();
+        Deque<Packet> list = new ConcurrentLinkedDeque<>();
         int numberOfPackets = byteMessages.size();
         for (int i = 0; i < numberOfPackets; i++) {
             PacketBuilder packetBuilder = new PacketBuilder();
@@ -358,10 +359,10 @@ public class Session implements PacketReceiveListener {
 
     public void sendFile(String filePath) {
         new Thread(() -> {
-            Queue<Packet> packetsToSend = generatePacketListForFile(filePath);
+            Deque<Packet> packetsToSend = generatePacketListForFile(filePath);
             ScheduledExecutorService regularSender = Executors.newSingleThreadScheduledExecutor();
             ScheduledExecutorService periodicResender = Executors.newSingleThreadScheduledExecutor();
-            Queue<Packet> unconfirmed = new ConcurrentLinkedQueue<>();
+            Deque<Packet> unconfirmed = new ConcurrentLinkedDeque<>();
             int packetNumber = packetsToSend.size();
             Runnable regularSendTask = () -> {
                 if (!packetsToSend.isEmpty()) {
@@ -386,7 +387,7 @@ public class Session implements PacketReceiveListener {
                     if (confirmed.contains(PacketUtils.bytesToInt(packet.getSequenceNumber()))) {
                         iterator.remove();
                     } else {
-                        packetsToSend.add(packet);
+                        packetsToSend.addFirst(packet);
                     }
                 }
                 if (confirmed.size() == packetNumber) {
@@ -395,8 +396,8 @@ public class Session implements PacketReceiveListener {
             };
 
 
-            regularSender.scheduleAtFixedRate(regularSendTask, 0, 100, TimeUnit.MILLISECONDS);
-            periodicResender.scheduleAtFixedRate(periodicResendTask, 200, 200, TimeUnit.MILLISECONDS);
+            regularSender.scheduleAtFixedRate(regularSendTask, 0, 80, TimeUnit.MILLISECONDS);
+            periodicResender.scheduleAtFixedRate(periodicResendTask, 500, 500, TimeUnit.MILLISECONDS);
 
             while (!confirmed.containsAll(packetsToSend.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList())) {
                 try {

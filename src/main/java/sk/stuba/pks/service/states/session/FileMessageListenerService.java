@@ -50,6 +50,8 @@ public class FileMessageListenerService implements PacketReceiveListener {
         } else {
             messages.get(fileMessage.getLocalMessageId()).add(fileMessage);
         }
+        System.out.println("Checking if all packets received");
+        System.out.println("Recieved " + messages.get(fileMessage.getLocalMessageId()).size() + "/" + fileMessage.getNumberOfPackets());
         if (messages.get(fileMessage.getLocalMessageId()).size() == fileMessage.getNumberOfPackets()) {
             System.out.println("Creating file");
             createFile(fileMessage.getLocalMessageId());

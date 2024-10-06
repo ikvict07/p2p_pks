@@ -10,6 +10,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -17,7 +18,7 @@ import java.util.concurrent.Executors;
 @Log4j2
 public class PacketReceiver implements Receiver {
     private final DatagramSocket socket;
-    private List<PacketReceiveListener> listeners = new ArrayList<>();
+    private List<PacketReceiveListener> listeners = new CopyOnWriteArrayList<>();
 
     public void addListener(PacketReceiveListener listener) {
         listeners.add(listener);
@@ -52,9 +53,7 @@ public class PacketReceiver implements Receiver {
                 if (packet == null) {
                     continue;
                 }
-                for (PacketReceiveListener listener : listeners) {
-                    listener.onPacketReceived(packet);
-                }
+                listeners.stream().parallel().forEach(listener -> listener.onPacketReceived(packet));
             }
         };
         Executor executor = Executors.newSingleThreadExecutor();
