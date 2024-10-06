@@ -42,25 +42,19 @@ public class PacketReceiver implements Receiver {
 
     public Executor startReceivingPackets() {
         Runnable task = () -> {
-            System.out.println("Receiving packets");
             while (true) {
                 // ensure thread is not interrupted
                 if (Thread.currentThread().isInterrupted()) {
                     System.out.println("Thread interrupted");
                     return;
                 }
-                System.out.println("BEFORE");
                 Packet packet = receive();
-                System.out.println("AFTER");
                 if (packet == null) {
-                    System.out.println("Packet is null");
                     continue;
                 }
                 for (PacketReceiveListener listener : listeners) {
-                    System.out.println("Notifying listener: " + listener);
                     listener.onPacketReceived(packet);
                 }
-                log.info("Received packet: " + packet);
             }
         };
         Executor executor = Executors.newSingleThreadExecutor();

@@ -39,4 +39,15 @@ class PacketUtilsTest {
     void t() {
         System.out.println(Arrays.toString(intToTwoByteArray(256)));
     }
+
+
+    @Test
+    void generateMessage() {
+        int len = 1600;
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            sb.append(i);
+        }
+        System.out.println(sb);
+    }
 }

@@ -15,8 +15,10 @@ public class SocketConfig {
     @Bean
     public DatagramSocket datagramSocket() {
         try {
+            System.out.println("Creating DatagramSocket on port " + listenPort);
             return new DatagramSocket(listenPort);
         } catch (Exception e) {
+            System.out.println("Failed to create DatagramSocket");
             throw new RuntimeException("Failed to create DatagramSocket", e);
         }
     }

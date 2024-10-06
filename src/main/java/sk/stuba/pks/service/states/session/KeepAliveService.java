@@ -31,14 +31,12 @@ public class KeepAliveService implements PacketReceiveListener {
             throw new RuntimeException("Connection lost");
         }
         receivedPacket.set(false);
-        System.out.println("Sending keep alive packet");
         packetSender.sendPacket(PacketBuilder.keepAlivePacket(session.getSessionId(), sequenceNumber), context.getRemoteIp(), context.getRemotePort());
     }
 
     public Executor startKeepAliveTask(Session session) {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(() -> {
-            System.out.println("Sending keep alive packet");
             keepAlive(session);
         }, 3, 10, TimeUnit.SECONDS);
         return scheduler;
