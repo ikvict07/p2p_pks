@@ -52,9 +52,7 @@ public class PacketReceiver implements Receiver {
                 if (packet == null) {
                     continue;
                 }
-                for (PacketReceiveListener listener : listeners) {
-                    listener.onPacketReceived(packet);
-                }
+                listeners.parallelStream().forEach(listener -> listener.onPacketReceived(packet));
             }
         };
         Executor executor = Executors.newSingleThreadExecutor();

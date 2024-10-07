@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -358,7 +359,7 @@ public class Session implements PacketReceiveListener {
             Queue<Packet> packetsToSend = generatePacketListForFile(filePath);
             ScheduledExecutorService regularSender = Executors.newSingleThreadScheduledExecutor();
             ScheduledExecutorService periodicResender = Executors.newSingleThreadScheduledExecutor();
-            Queue<Packet> unconfirmed = new ConcurrentLinkedQueue<>();
+            Map<Packet, Long> unconfirmed = new ConcurrentHashMap<>();
             int packetNumber = packetsToSend.size();
             Runnable regularSendTask = () -> {
                 if (!packetsToSend.isEmpty()) {
@@ -367,7 +368,7 @@ public class Session implements PacketReceiveListener {
                         if (packet == null) {
                             break;
                         }
-                        unconfirmed.add(packet);
+                        unconfirmed.put(packet, System.currentTimeMillis());
                         packetSender.sendPacket(packet, context.getRemoteIp(), context.getRemotePort());
                         System.out.println("Sending packet:" + ((FileMessage)JsonService.parseJson(new String(packet.getPayload()))).getLocalMessageOffset());
 
@@ -377,13 +378,17 @@ public class Session implements PacketReceiveListener {
             };
 
             Runnable periodicResendTask = () -> {
-                Iterator<Packet> iterator = unconfirmed.iterator();
+                Iterator<Packet> iterator = unconfirmed.keySet().iterator();
                 while (iterator.hasNext()) {
                     Packet packet = iterator.next();
                     if (confirmed.contains(PacketUtils.bytesToInt(packet.getSequenceNumber()))) {
                         iterator.remove();
                     } else {
-                        packetsToSend.add(packet);
+                        if (System.currentTimeMillis() - unconfirmed.get(packet) > 200) {
+                            iterator.remove();
+                            packetsToSend.add(packet);
+                        }
+
                     }
                 }
                 if (confirmed.size() == packetNumber) {
