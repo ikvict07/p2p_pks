@@ -13,15 +13,10 @@ public class AckKeepAliveService implements PacketReceiveListener {
     @Autowired
     private PacketSender packetSender;
 
-    @Autowired
-    private Context context;
-
     @Override
     public void onPacketReceived(Packet packet) {
         if (packet.isKeepAlive() && !packet.isAck()) {
-            packetSender.sendPacket(PacketBuilder.ackKeepAlivePacket(packet.getSessionId(), packet.getSequenceNumber()),
-                    context.getRemoteIp(),
-                    context.getRemotePort());
+            packetSender.getPacketQueue().addFirst(PacketBuilder.ackKeepAlivePacket(packet.getSessionId(), packet.getSequenceNumber()));
         }
     }
 }

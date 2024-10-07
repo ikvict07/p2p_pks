@@ -118,6 +118,7 @@ public class Session implements PacketReceiveListener {
         System.out.println("Start adding");
         tasks.add(packetReceiver.startReceivingPackets());
         tasks.add(keepAliveService.startKeepAliveTask(this));
+        packetSender.startSendingPackets();
         System.out.println("End adding");
     }
 
@@ -371,7 +372,8 @@ public class Session implements PacketReceiveListener {
                             break;
                         }
                         unconfirmed.put(packet, System.currentTimeMillis());
-                        packetSender.sendPacket(packet, context.getRemoteIp(), context.getRemotePort());
+                        packetSender.getPacketQueue().add(packet);
+//                        packetSender.sendPacket(packet, context.getRemoteIp(), context.getRemotePort());
                         System.out.println("Sending packet:" + ((FileMessage)JsonService.parseJson(new String(packet.getPayload()))).getLocalMessageOffset());
 
                     }
@@ -396,7 +398,7 @@ public class Session implements PacketReceiveListener {
             };
 
 
-            regularSender.scheduleAtFixedRate(regularSendTask, 0, 100, TimeUnit.MILLISECONDS);
+            regularSender.scheduleAtFixedRate(regularSendTask, 0, 500, TimeUnit.MILLISECONDS);
             periodicResender.scheduleAtFixedRate(periodicResendTask, 200, 200, TimeUnit.MILLISECONDS);
 
             while (!confirmed.containsAll(packetsToSend.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList())) {
