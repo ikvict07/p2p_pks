@@ -403,7 +403,7 @@ public class Session implements PacketReceiveListener {
             };
 
 
-            regularSender.scheduleAtFixedRate(regularSendTask, 0, 500, TimeUnit.MILLISECONDS);
+            regularSender.scheduleAtFixedRate(regularSendTask, 0, 50, TimeUnit.MILLISECONDS);
             periodicResender.scheduleAtFixedRate(periodicResendTask, 200, 200, TimeUnit.MILLISECONDS);
 
             while (!confirmed.containsAll(packetSet.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList())) {
