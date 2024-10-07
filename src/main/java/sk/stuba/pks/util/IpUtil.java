@@ -1,28 +1,37 @@
 package sk.stuba.pks.util;
 
-
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class IpUtil {
     public static String getIp() {
+        String command = "ipconfig getifaddr en0";
+        StringBuilder output = new StringBuilder();
+
         try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            while (interfaces.hasMoreElements()) {
-                NetworkInterface networkInterface = interfaces.nextElement();
-                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress inetAddress = addresses.nextElement();
-                    if (!inetAddress.isLoopbackAddress() && inetAddress.isSiteLocalAddress()) {
-                        return inetAddress.getHostAddress();
-                    }
-                }
+            ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
             }
-        } catch (SocketException e) {
+            while ((line = errorReader.readLine()) != null) {
+                System.err.println("ERROR: " + line);
+            }
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new RuntimeException("Command exited with code " + exitCode);
+            }
+        } catch (Exception e) {
             throw new RuntimeException("Cannot get IP address", e);
         }
-        throw new RuntimeException("Cannot get IP address");
+
+        return output.toString();
+    }
+
+    public static void main(String[] args) {
+        System.out.println(getIp());
     }
 }
