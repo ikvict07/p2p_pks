@@ -31,7 +31,8 @@ public class KeepAliveService implements PacketReceiveListener {
             throw new RuntimeException("Connection lost");
         }
         receivedPacket.set(false);
-        packetSender.sendPacket(PacketBuilder.keepAlivePacket(session.getSessionId(), sequenceNumber), context.getRemoteIp(), context.getRemotePort());
+        packetSender.getPacketQueue().addFirst(PacketBuilder.keepAlivePacket(session.getSessionId(), sequenceNumber));
+//        packetSender.sendPacket(PacketBuilder.keepAlivePacket(session.getSessionId(), sequenceNumber), context.getRemoteIp(), context.getRemotePort());
     }
 
     public Executor startKeepAliveTask(Session session) {
