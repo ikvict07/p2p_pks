@@ -360,6 +360,8 @@ public class Session implements PacketReceiveListener {
     public void sendFile(String filePath) {
         new Thread(() -> {
             Deque<Packet> packetsToSend = generatePacketListForFile(filePath);
+            Set<Packet> packetSet = ConcurrentHashMap.newKeySet();
+            packetSet.addAll(packetsToSend);
             ScheduledExecutorService regularSender = Executors.newSingleThreadScheduledExecutor();
             ScheduledExecutorService periodicResender = Executors.newSingleThreadScheduledExecutor();
             Map<Packet, Long> unconfirmed = new ConcurrentHashMap<>();
@@ -375,7 +377,7 @@ public class Session implements PacketReceiveListener {
                         packetSender.getPacketQueue().add(packet);
 //                        packetSender.sendPacket(packet, context.getRemoteIp(), context.getRemotePort());
                         System.out.println("Sending packet:" + ((FileMessage)JsonService.parseJson(new String(packet.getPayload()))).getLocalMessageOffset());
-
+                        System.out.println("Unconfirmed packets: " + unconfirmed.size());
                     }
 
                 }
@@ -383,16 +385,19 @@ public class Session implements PacketReceiveListener {
 
             Runnable periodicResendTask = () -> {
                 Iterator<Packet> iterator = unconfirmed.keySet().iterator();
+                System.out.println("Resending packets");
                 while (iterator.hasNext()) {
                     Packet packet = iterator.next();
                     if (confirmed.contains(PacketUtils.bytesToInt(packet.getSequenceNumber()))) {
                         iterator.remove();
+                        System.out.println("Removing packet");
+                        System.out.println("Unconfirmed packets: " + unconfirmed.size());
                     } else {
                         packetsToSend.addFirst(packet);
-
                     }
                 }
                 if (confirmed.size() == packetNumber) {
+                    System.out.println("All packets confirmed");
                     periodicResender.shutdown();
                 }
             };
@@ -401,7 +406,7 @@ public class Session implements PacketReceiveListener {
             regularSender.scheduleAtFixedRate(regularSendTask, 0, 500, TimeUnit.MILLISECONDS);
             periodicResender.scheduleAtFixedRate(periodicResendTask, 200, 200, TimeUnit.MILLISECONDS);
 
-            while (!confirmed.containsAll(packetsToSend.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList())) {
+            while (!confirmed.containsAll(packetSet.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList())) {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
@@ -409,6 +414,7 @@ public class Session implements PacketReceiveListener {
                 }
             }
             packetsToSend.stream().map(packet -> PacketUtils.bytesToInt(packet.getSequenceNumber())).toList().forEach(confirmed::remove);
+
 
             regularSender.shutdown();
             periodicResender.shutdown();
