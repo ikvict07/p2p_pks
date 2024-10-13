@@ -1,8 +1,7 @@
 package sk.stuba.pks.util;
 
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
+import sk.stuba.pks.old.util.IpUtil;
 
 class IpUtilTest {
 

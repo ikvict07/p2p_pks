@@ -1,10 +1,7 @@
 package sk.stuba.pks.util;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import sk.stuba.pks.old.util.PacketUtils;
 
 import java.util.Arrays;
 

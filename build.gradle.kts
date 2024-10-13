@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "3.3.4"
     id("io.spring.dependency-management") version "1.1.6"
+    kotlin("jvm")
 }
 
 group = "sk.stuba"
@@ -32,6 +33,10 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(kotlin("stdlib-jdk8"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+    implementation("io.ktor:ktor-network:2.3.4")
+    implementation("io.ktor:ktor-client-core:2.3.4")
 }
 
 tasks.withType<Test> {

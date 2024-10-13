@@ -5,12 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import sk.stuba.pks.annotation.DefaultOperationHandlerQualifier;
-import sk.stuba.pks.service.ChatOperatingService;
-import sk.stuba.pks.service.operationHandler.OperationHandler;
-import sk.stuba.pks.service.states.session.Session;
+import sk.stuba.pks.old.annotation.DefaultOperationHandlerQualifier;
+import sk.stuba.pks.old.service.ChatOperatingService;
+import sk.stuba.pks.old.service.operationHandler.OperationHandler;
+import sk.stuba.pks.old.service.states.session.Session;
 
 import java.io.BufferedReader;
 import java.io.IOException;
