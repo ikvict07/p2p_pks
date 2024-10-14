@@ -1,4 +1,4 @@
-package sk.stuba.pks.starter
+package sk.stuba.pks.library
 
 interface MessageListener {
     fun onMessageReceive(message: String)

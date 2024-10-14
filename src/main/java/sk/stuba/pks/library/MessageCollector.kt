@@ -11,6 +11,10 @@ class MessageCollector (
 
     fun addMessage(message: SimpleMessage) {
         messages.add(message)
+        if (isComplete()) {
+            println("Message $messageId is complete")
+        }
+        println(getCompleteMessage())
     }
 
     fun isComplete(): Boolean {

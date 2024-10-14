@@ -128,7 +128,6 @@ public class PacketBuilder {
                     "type": "syn",
                     "port": "%d",
                     "address": "%s"
-  
                 }
                 """.formatted(port, address);
         return pb.setPayloadLength(PacketUtils.intToByteArray(payload.length())).setPayload(payload.getBytes()).build();

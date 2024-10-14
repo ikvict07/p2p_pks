@@ -37,6 +37,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     implementation("io.ktor:ktor-network:2.3.4")
     implementation("io.ktor:ktor-client-core:2.3.4")
+    implementation("org.reflections:reflections:0.10.2")
 }
 
 tasks.withType<Test> {
