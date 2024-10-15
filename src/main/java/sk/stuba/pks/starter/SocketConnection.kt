@@ -53,6 +53,10 @@ class SocketConnection(
                         val message = JsonService.fromPayload(packet.payload)
                         if (message is SimpleMessage) {
                             messageCollectors.computeIfAbsent(message.localMessageId) { MessageCollector(message.localMessageId, message.numberOfPackets) }.addMessage(message)
+                            if (messageCollectors[message.localMessageId]!!.isComplete()) {
+                                notifyListenersMessage(messageCollectors[message.localMessageId]!!.getCompleteMessage())
+                                messageCollectors.remove(message.localMessageId)
+                            }
                         }
                     }
                 }

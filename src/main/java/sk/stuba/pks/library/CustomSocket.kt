@@ -17,9 +17,10 @@ import sk.stuba.pks.old.service.PacketReceiveListener
 import sk.stuba.pks.old.service.mapping.JsonService
 import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 
 class CustomSocket(
@@ -34,6 +35,9 @@ class CustomSocket(
     private var serverPort: Int = 0
     private lateinit var packetSender: PacketSender
     private lateinit var packetFlow: Flow<Packet>
+
+    private val isKeepAliveReceived = AtomicBoolean(true)
+    private val unsuccessfulKeepAliveCount = AtomicInteger(0)
 
     private val confirmed: MutableSet<Int> = ConcurrentSet()
     var unconfirmed: MutableMap<Packet, Long> = ConcurrentHashMap()
@@ -200,6 +204,7 @@ class CustomSocket(
         packetFlow = packetReceiver.startReceivingPackets()
         handleReceivedPackets()
         resender()
+        sendKeepAlive()
     }
 
     private fun handleReceivedPackets() {
@@ -220,8 +225,13 @@ class CustomSocket(
                     packetListeners.forEach { it.onPacketReceived(packet) }
                 }
 
-                if (packet.isKeepAlive) {
+                if (packet.isKeepAlive && !packet.isAck) {
                     packetSender.sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
+                }
+
+                if (packet.isKeepAlive && packet.isAck) {
+                    isKeepAliveReceived.set(true)
+                    unsuccessfulKeepAliveCount.set(0)
                 }
             }
         }
@@ -242,6 +252,27 @@ class CustomSocket(
                     }
                 }
                 toRemove.forEach { unconfirmed.remove(it) }
+            }
+        }
+    }
+
+    private fun sendKeepAlive() {
+        CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                if (!isKeepAliveReceived.get()) {
+                    unsuccessfulKeepAliveCount.incrementAndGet()
+                    if (unsuccessfulKeepAliveCount.get() > 3) {
+                        println("Connection lost")
+                        break
+                    }
+                } else {
+                    unsuccessfulKeepAliveCount.set(0)
+                }
+                isKeepAliveReceived.set(false)
+                val packet = PacketBuilder.keepAlivePacket(sessionId, currentSequenceNumber)
+                sendPacket(packet)
+                currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
+                Thread.sleep(5000)
             }
         }
     }
