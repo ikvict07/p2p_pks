@@ -68,7 +68,6 @@ public class FileMessageListenerService implements PacketReceiveListener {
                 .sorted(Comparator.comparingInt(FileMessage::getLocalMessageOffset))
                 .toList();
         System.out.println("Complete message: " + completeMessage.size());
-
         byte[] concatenatedBytes;
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             for (FileMessage fileMessage : completeMessage) {

@@ -29,7 +29,7 @@ class PacketSender (
         }
     }
 
-
+    var sent = 0
     fun addPacket(packet: Packet) {
         packetQueue.add(packet)
     }
@@ -38,6 +38,8 @@ class PacketSender (
     }
 
     suspend fun sendPacket(packet: Packet) {
+        sent++
+        println("Sent packet $sent")
         val data = packet.bytes
         val addrs = InetSocketAddress(serverAddress, serverPort)
         val byteReadPacket = ByteReadPacket(data)

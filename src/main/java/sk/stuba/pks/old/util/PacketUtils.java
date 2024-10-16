@@ -36,8 +36,13 @@ public class PacketUtils {
     }
 
     public static int byteArrayToInt(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        return buffer.getInt();
+        if (bytes.length != 4) {
+            throw new IllegalArgumentException("Byte array must be of length 4");
+        }
+        return (bytes[0] & 0xFF) << 24 |
+                (bytes[1] & 0xFF) << 16 |
+                (bytes[2] & 0xFF) << 8  |
+                (bytes[3] & 0xFF);
     }
 
     public static byte[] incrementSequenceNumber(byte[] sequenceNumber) {

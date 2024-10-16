@@ -1,22 +1,29 @@
 package sk.stuba.pks.library
 
+import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
-import io.ktor.util.collections.*
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import sk.stuba.pks.old.dto.Packet
 import sk.stuba.pks.old.dto.PacketBuilder
+import sk.stuba.pks.old.model.FileMessage
 import sk.stuba.pks.old.model.Message
 import sk.stuba.pks.old.model.SynMessage
 import sk.stuba.pks.old.service.PacketReceiveListener
 import sk.stuba.pks.old.service.mapping.JsonService
 import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
+import java.io.File
+import java.lang.RuntimeException
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
@@ -39,8 +46,7 @@ class CustomSocket(
     private val isKeepAliveReceived = AtomicBoolean(true)
     private val unsuccessfulKeepAliveCount = AtomicInteger(0)
 
-    private val confirmed: MutableSet<Int> = ConcurrentSet()
-    var unconfirmed: MutableMap<Packet, Long> = ConcurrentHashMap()
+    private val unconfirmed: MutableMap<Int, Pair<Packet, Long>> = ConcurrentHashMap()
 
 
     val packetListeners: MutableList<PacketReceiveListener> = mutableListOf()
@@ -119,7 +125,7 @@ class CustomSocket(
                 packet = receiveMessage()
             }
         }
-        println("faster")
+
         val message: Message = JsonService.fromPayload(packet.payload)
         check(message is SynMessage) { "First message is not SYN message" }
 
@@ -147,20 +153,6 @@ class CustomSocket(
         udpSocket.send(datagramPacket)
     }
 
-    suspend fun getMessage(): Packet {
-        var packet = receiveMessage()
-        println(packet)
-        while (packet.isAck or packet.isSyn or packet.isSynAck or !packet.sessionId.contentEquals(sessionId) or packet.isKeepAlive) {
-            if (packet.isKeepAlive) {
-                sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
-            }
-            packet = receiveMessage()
-        }
-
-        sendPacket(PacketBuilder.ackPacket(sessionId, packet.sequenceNumber))
-        return packet
-    }
-
     fun sendMessage(message: String) {
         val messageBytes = message.toByteArray()
         val messagePackets = messageBytes.asSequence().chunked(1024)
@@ -173,18 +165,21 @@ class CustomSocket(
                 {
                     "type": "simple",
                     "numberOfPackets": "$totalPackets",
-                    "message": "${kotlin.text.String(packet.toByteArray())}",
+                    "message": "${String(packet.toByteArray())}",
                     "localMessageId": "$localMessageIdHash",
                     "localMessageOffset": "$index"
                 }
                 """.trimIndent()
             val packetToSend = prepareMessagePacket(simpleMessage)
             packetSender.addPacket(packetToSend)
-            unconfirmed[packetToSend] = System.currentTimeMillis()
+            val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
+            unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
+            println("size is ${unconfirmed.size}")
         }
     }
 
     private fun prepareMessagePacket(simpleMessage: String): Packet {
+        currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
         val payloadLen = PacketUtils.intToByteArray(simpleMessage.toByteArray().size)
         val packet = PacketBuilder()
             .setSessionId(sessionId)
@@ -209,15 +204,16 @@ class CustomSocket(
 
     private fun handleReceivedPackets() {
         CoroutineScope(Dispatchers.Default).launch {
+            var received = 0
             packetFlow.collect { packet ->
                 if (packet.isCorrupt) return@collect
 
-                if (packet.isAck) {
-                    println("Received ACK")
-                    println(packet)
+                if (packet.isAck && !packet.isKeepAlive) {
+
                     val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
-                    confirmed.add(sequenceNumber)
-                    println(confirmed)
+                    unconfirmed.remove(sequenceNumber)
+                    received++
+                    println("Received $received packets")
                 }
 
                 if (packet.isData && !packet.isAck) {
@@ -240,21 +236,23 @@ class CustomSocket(
     private fun resender() {
         CoroutineScope(Dispatchers.Default).launch {
             while (true) {
-                val toRemove = mutableListOf<Packet>()
-                unconfirmed.forEach { (packet, time) ->
-                    if (System.currentTimeMillis() - time > 5000) {
-                        packetSender.addPacketToBeginning(packet)
-                        unconfirmed[packet] = System.currentTimeMillis()
-                    } else {
-                        if (confirmed.contains(PacketUtils.byteArrayToInt(packet.sequenceNumber))) {
-                            toRemove.add(packet)
-                        }
+                if (unconfirmed.isEmpty()) {
+                    delay(100)
+                    continue
+                }
+                println("we have ${unconfirmed.size} unconfirmed packets")
+                unconfirmed.asSequence().take(100).forEach { (seqNumber, packet) ->
+                    if (System.currentTimeMillis() - packet.second > 500) {
+                        packetSender.addPacketToBeginning(packet.first)
+                        unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
+                        println("Resending packet with seqNumber $seqNumber")
                     }
                 }
-                toRemove.forEach { unconfirmed.remove(it) }
+                delay(200)
             }
         }
     }
+
 
     private fun sendKeepAlive() {
         CoroutineScope(Dispatchers.Default).launch {
@@ -274,6 +272,33 @@ class CustomSocket(
                 currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
                 Thread.sleep(5000)
             }
+        }
+    }
+
+    fun sendFile(filePath: String) {
+        val fileBytes = Files.readAllBytes(Paths.get(filePath))
+        val filePackets = fileBytes.asSequence().chunked(750)
+        val totalPackets = filePackets.count()
+        val localMessageIdHash = filePackets.hashCode()
+        filePackets.forEachIndexed { index, packet ->
+            val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
+            val simpleMessage =
+                // language=JSON
+                """
+                    {
+                        "type": "file",
+                        "fileName": "${File(filePath).name}",
+                        "numberOfPackets": "$totalPackets",
+                        "payload": "$base64Payload",
+                        "localMessageId": "$localMessageIdHash",
+                        "localMessageOffset": "$index"
+                    }
+                """.trimIndent()
+
+            val packetToSend = prepareMessagePacket(simpleMessage)
+            packetSender.addPacket(packetToSend)
+            val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
+            unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
         }
     }
 }

@@ -11,6 +11,7 @@ import sk.stuba.pks.library.FileCollector
 import sk.stuba.pks.library.InjectMassageListeners
 import sk.stuba.pks.library.MessageCollector
 import sk.stuba.pks.library.MessageListener
+import sk.stuba.pks.old.model.FileMessage
 import sk.stuba.pks.old.model.SimpleMessage
 import sk.stuba.pks.old.service.PacketReceiveListener
 import sk.stuba.pks.old.service.mapping.JsonService
@@ -47,7 +48,7 @@ class SocketConnection(
                 else break
             }
             socket.packetListeners.addAll(listOf(
-                PacketReceiveListener { packet -> println(packet) },
+                PacketReceiveListener { packet -> {}},
                 PacketReceiveListener { packet ->
                     run {
                         val message = JsonService.fromPayload(packet.payload)
@@ -56,6 +57,13 @@ class SocketConnection(
                             if (messageCollectors[message.localMessageId]!!.isComplete()) {
                                 notifyListenersMessage(messageCollectors[message.localMessageId]!!.getCompleteMessage())
                                 messageCollectors.remove(message.localMessageId)
+                            }
+                        }
+                        if (message is FileMessage) {
+                            fileCollectors.computeIfAbsent(message.fileName) { FileCollector(message.fileName, message.numberOfPackets) }.addPacket(message)
+                            if (fileCollectors[message.fileName]!!.isComplete()) {
+                                notifyListenersFile(message.fileName, fileCollectors[message.fileName]!!.getCompleteFile())
+                                fileCollectors.remove(message.fileName)
                             }
                         }
                     }
@@ -86,6 +94,16 @@ class SocketConnection(
 
     }
 
+    fun sendFile(filePath: String) {
+        if (!isConnectionEstablished) {
+            throw IllegalStateException("Connection not established")
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            socket.sendFile(filePath)
+        }
+    }
+
     fun connect(serverAddress: String, serverPort: Int) {
         println("Trying to connect")
         CoroutineScope(Dispatchers.IO).launch {
@@ -111,9 +129,6 @@ class SocketConnection(
         }
     }
 
-    fun sendFile(filePath: String) {
-        TODO("Not yet implemented")
-    }
 
     fun startListening() {
         println("Listening on port HHH $port")
