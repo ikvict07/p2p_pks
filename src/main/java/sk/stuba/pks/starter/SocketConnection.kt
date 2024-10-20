@@ -6,35 +6,42 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.annotation.Lazy
 import sk.stuba.pks.library.CustomSocket
 import sk.stuba.pks.library.FileCollector
-import sk.stuba.pks.library.InjectMassageListeners
 import sk.stuba.pks.library.MessageCollector
 import sk.stuba.pks.library.MessageListener
 import sk.stuba.pks.old.model.FileMessage
 import sk.stuba.pks.old.model.SimpleMessage
 import sk.stuba.pks.old.service.PacketReceiveListener
 import sk.stuba.pks.old.service.mapping.JsonService
+import kotlin.properties.Delegates
 
 class SocketConnection(
     val port: String,
+    val type: SocketConnectionType,
 ) {
-    @InjectMassageListeners
+    @Autowired
+    @Lazy
     private lateinit var messageListeners: List<MessageListener>
 
     private lateinit var remoteIp: String
 
+    constructor(port: Int, remoteIP: String, remotePort: Int, type: SocketConnectionType) : this(port.toString(), type) {
+        println("Creating connector")
+        println("Remote ip $remoteIP remote port $remotePort")
+        remoteIp = remoteIP
+        this.remotePort = remotePort
+    }
+
     val socket = CustomSocket(port)
+    var remotePort by Delegates.notNull<Int>()
     private val messageCollectors = mutableMapOf<Int, MessageCollector>()
     private val fileCollectors = mutableMapOf<String, FileCollector>()
     private var isConnectionEstablished = false
 
-    fun getRemoteIp(): String =
-        if (isConnectionEstablished) {
-            remoteIp
-        } else {
-            ""
-        }
+    fun getRemoteIp(): String = remoteIp
 
     fun isConnectionEstablished(): Boolean = isConnectionEstablished
 
@@ -135,37 +142,38 @@ class SocketConnection(
             if (r) {
                 println("Connection established on port $port")
                 remoteIp = serverAddress
+                remotePort = serverPort
             } else {
                 println("Connection failed on port $port")
                 throw Exception("Connection failed on port $port")
             }
+            println("WE ENDED CONNECTING, PORT $port, REMOTE IP $remoteIp, REMOTE PORT $remotePort")
             isConnectionEstablished = true
         }
     }
 
     fun startListening() {
-        println("Listening on port HHH $port")
         CoroutineScope(Dispatchers.IO).launch {
             val result =
                 async {
                     try {
-                        println("Trying")
                         socket.waitConnection()
                     } catch (e: TimeoutCancellationException) {
                         ""
                     }
                 }
-            println("Awaiting")
             val r: String = result.await()
             println("Port $port result $r")
             println("Awaited")
             if (r.isNotEmpty()) {
                 println("Connection established on port $port")
                 remoteIp = r
+                remotePort = socket.serverPort
             } else {
                 println("Connection failed on port $port")
                 throw Exception("Connection failed on port $port")
             }
+            println("WE ENDED STARTING LISTENING, PORT $port, REMOTE IP $remoteIp, REMOTE PORT $remotePort")
             isConnectionEstablished = true
         }
     }
