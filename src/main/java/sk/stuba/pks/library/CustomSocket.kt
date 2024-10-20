@@ -1,6 +1,5 @@
 package sk.stuba.pks.library
 
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
@@ -12,7 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import sk.stuba.pks.old.dto.Packet
 import sk.stuba.pks.old.dto.PacketBuilder
-import sk.stuba.pks.old.model.FileMessage
 import sk.stuba.pks.old.model.Message
 import sk.stuba.pks.old.model.SynMessage
 import sk.stuba.pks.old.service.PacketReceiveListener
@@ -20,7 +18,6 @@ import sk.stuba.pks.old.service.mapping.JsonService
 import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
 import java.io.File
-import java.lang.RuntimeException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
@@ -29,9 +26,8 @@ import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-
 class CustomSocket(
-    private val port: String
+    private val port: String,
 ) {
     val address = InetSocketAddress("0.0.0.0", port.toInt()) // Use 0.0.0.0 to bind to all available interfaces
     val myAddress = IpUtil.getIp()!!
@@ -39,7 +35,14 @@ class CustomSocket(
     private var currentSequenceNumber = ByteArray(4).apply { fill(0x00) }
     private lateinit var sessionId: ByteArray
     private lateinit var serverAddress: String
-    private var serverPort: Int = 0
+    var serverPort: Int = 0
+        private set
+        get() {
+            if (field == 0) {
+                throw IllegalStateException("Server port is not set")
+            }
+            return field
+        }
     private lateinit var packetSender: PacketSender
     private lateinit var packetFlow: Flow<Packet>
 
@@ -48,10 +51,12 @@ class CustomSocket(
 
     private val unconfirmed: MutableMap<Int, Pair<Packet, Long>> = ConcurrentHashMap()
 
-
     val packetListeners: MutableList<PacketReceiveListener> = mutableListOf()
 
-    suspend fun connect(serverAddress: String, serverPort: Int): Boolean {
+    suspend fun connect(
+        serverAddress: String,
+        serverPort: Int,
+    ): Boolean {
         generateSessionId()
         this.serverAddress = serverAddress
         this.serverPort = serverPort
@@ -129,7 +134,6 @@ class CustomSocket(
         val message: Message = JsonService.fromPayload(packet.payload)
         check(message is SynMessage) { "First message is not SYN message" }
 
-
         serverAddress = message.address
         serverPort = message.port
         currentSequenceNumber = packet.sequenceNumber
@@ -181,14 +185,15 @@ class CustomSocket(
     private fun prepareMessagePacket(simpleMessage: String): Packet {
         currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
         val payloadLen = PacketUtils.intToByteArray(simpleMessage.toByteArray().size)
-        val packet = PacketBuilder()
-            .setSessionId(sessionId)
-            .setSequenceNumber(currentSequenceNumber)
-            .setPayload(simpleMessage.toByteArray())
-            .setPayloadLength(payloadLen)
-            .setPayloadType(0b00)
-            .setAckFlag(0b00)
-            .build()
+        val packet =
+            PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(currentSequenceNumber)
+                .setPayload(simpleMessage.toByteArray())
+                .setPayloadLength(payloadLen)
+                .setPayloadType(0b00)
+                .setAckFlag(0b00)
+                .build()
         return packet
     }
 
@@ -209,7 +214,6 @@ class CustomSocket(
                 if (packet.isCorrupt) return@collect
 
                 if (packet.isAck && !packet.isKeepAlive) {
-
                     val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
                     unconfirmed.remove(sequenceNumber)
                     received++
@@ -253,7 +257,6 @@ class CustomSocket(
         }
     }
 
-
     private fun sendKeepAlive() {
         CoroutineScope(Dispatchers.Default).launch {
             while (true) {
@@ -285,14 +288,14 @@ class CustomSocket(
             val simpleMessage =
                 // language=JSON
                 """
-                    {
-                        "type": "file",
-                        "fileName": "${File(filePath).name}",
-                        "numberOfPackets": "$totalPackets",
-                        "payload": "$base64Payload",
-                        "localMessageId": "$localMessageIdHash",
-                        "localMessageOffset": "$index"
-                    }
+                {
+                    "type": "file",
+                    "fileName": "${File(filePath).name}",
+                    "numberOfPackets": "$totalPackets",
+                    "payload": "$base64Payload",
+                    "localMessageId": "$localMessageIdHash",
+                    "localMessageOffset": "$index"
+                }
                 """.trimIndent()
 
             val packetToSend = prepareMessagePacket(simpleMessage)

@@ -12,19 +12,21 @@ import sk.stuba.pks.old.dto.Packet
 import sk.stuba.pks.old.dto.PacketBuilder
 
 class PacketReceiver(
-    val socket: BoundDatagramSocket
+    val socket: BoundDatagramSocket,
 ) {
-    fun startReceivingPackets(): Flow<Packet> = callbackFlow {
-        val job = CoroutineScope(Dispatchers.IO).launch {
-            while (true) {
-                val datagram = socket.receive()
-                val packet = PacketBuilder.getPacketFromBytes(datagram.packet.readBytes())
+    fun startReceivingPackets(): Flow<Packet> =
+        callbackFlow {
+            val job =
+                CoroutineScope(Dispatchers.IO).launch {
+                    while (true) {
+                        val datagram = socket.receive()
+                        val packet = PacketBuilder.getPacketFromBytes(datagram.packet.readBytes())
 
-                packet?.let {
-                    trySend(it)
+                        packet?.let {
+                            trySend(it)
+                        }
+                    }
                 }
-            }
+            awaitClose { job.cancel() }
         }
-        awaitClose { job.cancel() }
-    }
 }

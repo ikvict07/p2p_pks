@@ -9,14 +9,12 @@ import sk.stuba.pks.old.dto.Packet
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 
-class PacketSender (
+class PacketSender(
     val socket: BoundDatagramSocket,
     val serverAddress: String,
-    val serverPort: Int
+    val serverPort: Int,
 ) {
-
     val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
-
 
     fun startSendingPackets() {
         CoroutineScope(Dispatchers.IO).launch {
@@ -30,9 +28,11 @@ class PacketSender (
     }
 
     var sent = 0
+
     fun addPacket(packet: Packet) {
         packetQueue.add(packet)
     }
+
     fun addPacketToBeginning(packet: Packet) {
         packetQueue.addFirst(packet)
     }

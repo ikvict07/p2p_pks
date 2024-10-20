@@ -3,7 +3,6 @@ package sk.stuba.pks.library
 import io.ktor.util.collections.*
 import sk.stuba.pks.old.model.FileMessage
 import java.io.ByteArrayOutputStream
-import java.util.*
 
 class FileCollector(
     val fileName: String,

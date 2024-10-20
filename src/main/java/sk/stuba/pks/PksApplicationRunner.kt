@@ -7,20 +7,19 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
 import sk.stuba.pks.starter.SocketConnection
 
-
 @Component
 @Log4j2
-class PksApplicationRunner (
-    val connections: List<SocketConnection>
-): ApplicationRunner {
+class PksApplicationRunner(
+    val connections: List<SocketConnection>,
+) : ApplicationRunner {
     override fun run(args: ApplicationArguments?) {
         log.info("Application started")
 
         while (true) {
             Thread.sleep(1000)
-            println("Write where you want to send message: ${connections.map { it.getRemoteIp() + ":" + it.port }}")
+            println("Write where you want to send message: ${connections.map { it.getRemoteIp() + ":" + it.socket.serverPort }}")
             val whereToConnect = readln()
-            val connection = connections.find { whereToConnect == it.getRemoteIp() + ":" + it.port }
+            val connection = connections.find { whereToConnect == it.getRemoteIp() + ":" + it.socket.serverPort }
             println(connection)
             connection?.run {
                 println("What message do you want to send? (message - to send message, file - to send file, exit - to exit)")
@@ -40,7 +39,6 @@ class PksApplicationRunner (
                     else -> println("Unknown command")
                 }
             }
-
         }
     }
 }
