@@ -22,11 +22,12 @@ class SocketConnection(
     val port: String,
     val type: SocketConnectionType,
 ) {
+    @Suppress("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
     @Lazy
     private lateinit var messageListeners: List<MessageListener>
 
-    private lateinit var remoteIp: String
+    private var remoteIp: String? = null
 
     constructor(port: Int, remoteIP: String, remotePort: Int, type: SocketConnectionType) : this(port.toString(), type) {
         println("Creating connector")
@@ -41,7 +42,12 @@ class SocketConnection(
     private val fileCollectors = mutableMapOf<String, FileCollector>()
     private var isConnectionEstablished = false
 
-    fun getRemoteIp(): String = remoteIp
+    fun getRemoteIp(): String {
+        while (remoteIp == null) {
+            Thread.sleep(1000)
+        }
+        return remoteIp!!
+    }
 
     fun isConnectionEstablished(): Boolean = isConnectionEstablished
 

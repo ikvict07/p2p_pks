@@ -211,27 +211,29 @@ class CustomSocket(
         CoroutineScope(Dispatchers.Default).launch {
             var received = 0
             packetFlow.collect { packet ->
-                if (packet.isCorrupt) return@collect
+                launch {
+                    if (packet.isCorrupt) return@launch
 
-                if (packet.isAck && !packet.isKeepAlive) {
-                    val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
-                    unconfirmed.remove(sequenceNumber)
-                    received++
-                    println("Received $received packets")
-                }
+                    if (packet.isAck && !packet.isKeepAlive) {
+                        val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
+                        unconfirmed.remove(sequenceNumber)
+                        received++
+                        println("Received $received packets")
+                    }
 
-                if (packet.isData && !packet.isAck) {
-                    packetSender.sendPacket(PacketBuilder.ackPacket(sessionId, packet.sequenceNumber))
-                    packetListeners.forEach { it.onPacketReceived(packet) }
-                }
+                    if (packet.isData && !packet.isAck) {
+                        packetSender.sendPacket(PacketBuilder.ackPacket(sessionId, packet.sequenceNumber))
+                        packetListeners.forEach { it.onPacketReceived(packet) }
+                    }
 
-                if (packet.isKeepAlive && !packet.isAck) {
-                    packetSender.sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
-                }
+                    if (packet.isKeepAlive && !packet.isAck) {
+                        packetSender.sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
+                    }
 
-                if (packet.isKeepAlive && packet.isAck) {
-                    isKeepAliveReceived.set(true)
-                    unsuccessfulKeepAliveCount.set(0)
+                    if (packet.isKeepAlive && packet.isAck) {
+                        isKeepAliveReceived.set(true)
+                        unsuccessfulKeepAliveCount.set(0)
+                    }
                 }
             }
         }
@@ -245,14 +247,14 @@ class CustomSocket(
                     continue
                 }
                 println("we have ${unconfirmed.size} unconfirmed packets")
-                unconfirmed.asSequence().take(100).forEach { (seqNumber, packet) ->
+                unconfirmed.asSequence().take(10000).forEach { (seqNumber, packet) ->
                     if (System.currentTimeMillis() - packet.second > 500) {
                         packetSender.addPacketToBeginning(packet.first)
                         unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
                         println("Resending packet with seqNumber $seqNumber")
                     }
                 }
-                delay(200)
+                delay(20)
             }
         }
     }
