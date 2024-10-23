@@ -1,34 +1,28 @@
 package sk.stuba.pks.old.util;
 
+import lombok.val;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 public class IpUtil {
     public static String getIp() {
-        String command = "ipconfig getifaddr en0";
-        StringBuilder output = new StringBuilder();
 
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line);
-            }
-            while ((line = errorReader.readLine()) != null) {
-                System.err.println("ERROR: " + line);
-            }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new RuntimeException("Command exited with code " + exitCode);
-            }
+        try (HttpClient client = HttpClient.newBuilder().build();) {
+            val request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://checkip.amazonaws.com"))
+                    .build();
+
+            val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
         } catch (Exception e) {
-            throw new RuntimeException("Cannot get IP address", e);
+            e.printStackTrace();
+            return null;
         }
-
-        return output.toString();
     }
 
     public static void main(String[] args) {

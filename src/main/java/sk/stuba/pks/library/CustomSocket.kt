@@ -5,9 +5,12 @@ import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import sk.stuba.pks.old.dto.Packet
 import sk.stuba.pks.old.dto.PacketBuilder
@@ -285,25 +288,31 @@ class CustomSocket(
         val filePackets = fileBytes.asSequence().chunked(750)
         val totalPackets = filePackets.count()
         val localMessageIdHash = filePackets.hashCode()
-        filePackets.forEachIndexed { index, packet ->
-            val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
-            val simpleMessage =
-                // language=JSON
-                """
-                {
-                    "type": "file",
-                    "fileName": "${File(filePath).name}",
-                    "numberOfPackets": "$totalPackets",
-                    "payload": "$base64Payload",
-                    "localMessageId": "$localMessageIdHash",
-                    "localMessageOffset": "$index"
-                }
-                """.trimIndent()
+        runBlocking {
+            filePackets
+                .mapIndexed { index, packet ->
+                    async(Dispatchers.Default) {
+                        val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
+                        val simpleMessage =
+                            // language=JSON
+                            """
+                            {
+                                "type": "file",
+                                "fileName": "${File(filePath).name}",
+                                "numberOfPackets": "$totalPackets",
+                                "payload": "$base64Payload",
+                                "localMessageId": "$localMessageIdHash",
+                                "localMessageOffset": "$index"
+                            }
+                            """.trimIndent()
 
-            val packetToSend = prepareMessagePacket(simpleMessage)
-            packetSender.addPacket(packetToSend)
-            val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
-            unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
+                        val packetToSend = prepareMessagePacket(simpleMessage)
+                        packetSender.addPacket(packetToSend)
+                        val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
+                        unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
+                    }
+                }.toList()
+                .awaitAll()
         }
     }
 }
