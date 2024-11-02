@@ -1,37 +1,32 @@
 package sk.stuba.pks.old.util;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
 
 public class IpUtil {
-    public static String getIp() {
-        String command = "ipconfig getifaddr en0";
-        StringBuilder output = new StringBuilder();
 
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(command.split(" "));
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line);
+    public static String getIp() throws Exception {
+        for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+            if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+                continue;
             }
-            while ((line = errorReader.readLine()) != null) {
-                System.err.println("ERROR: " + line);
+
+            for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
+                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
+                    return inetAddress.getHostAddress();
+                }
             }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new RuntimeException("Command exited with code " + exitCode);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot get IP address", e);
         }
-
-        return output.toString();
+        throw new RuntimeException("No suitable private IP address found in local network interfaces.");
     }
 
     public static void main(String[] args) {
-        System.out.println(getIp());
+        try {
+            String ipAddress = getIp();
+            System.out.println("Found IP address: " + ipAddress);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
