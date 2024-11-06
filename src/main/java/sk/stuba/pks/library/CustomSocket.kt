@@ -3,8 +3,8 @@ package sk.stuba.pks.library
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -197,84 +197,82 @@ class CustomSocket(
         return packet
     }
 
-    fun startSending() {
-        packetSender = PacketSender(udpSocket, serverAddress, serverPort)
-        packetSender.startSendingPackets()
-        val packetReceiver = PacketReceiver(udpSocket)
-        packetFlow = packetReceiver.startReceivingPackets()
-        handleReceivedPackets()
-        resender()
-        sendKeepAlive()
+    suspend fun startSending() {
+        coroutineScope {
+            packetSender = PacketSender(udpSocket, serverAddress, serverPort)
+            launch(Dispatchers.IO) { packetSender.startSendingPackets() }
+
+            val packetReceiver = PacketReceiver(udpSocket)
+            packetFlow = packetReceiver.startReceivingPackets()
+
+            launch(Dispatchers.IO) { handleReceivedPackets() }
+            launch(Dispatchers.IO) { resender() }
+            launch(Dispatchers.IO) { sendKeepAlive() }
+        }
     }
 
-    private fun handleReceivedPackets() {
-        CoroutineScope(Dispatchers.Default).launch {
-            var received = 0
-            packetFlow.collect { packet ->
-                if (packet.isCorrupt) return@collect
+    private suspend fun handleReceivedPackets() {
+        var received = 0
+        packetFlow.collect { packet ->
+            if (packet.isCorrupt) return@collect
 
-                if (packet.isAck && !packet.isKeepAlive) {
-                    val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
-                    unconfirmed.remove(sequenceNumber)
-                    received++
-                    println("Received $received packets")
-                }
+            if (packet.isAck && !packet.isKeepAlive) {
+                val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
+                unconfirmed.remove(sequenceNumber)
+                received++
+                println("Received $received packets")
+            }
 
-                if (packet.isData && !packet.isAck) {
-                    packetSender.sendPacket(PacketBuilder.ackPacket(sessionId, packet.sequenceNumber))
-                    packetListeners.forEach { it.onPacketReceived(packet) }
-                }
+            if (packet.isData && !packet.isAck) {
+                packetSender.sendPacket(PacketBuilder.ackPacket(sessionId, packet.sequenceNumber))
+                packetListeners.forEach { it.onPacketReceived(packet) }
+            }
 
-                if (packet.isKeepAlive && !packet.isAck) {
-                    packetSender.sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
-                }
+            if (packet.isKeepAlive && !packet.isAck) {
+                packetSender.sendPacket(PacketBuilder.keepAliveAckPacket(sessionId, packet.sequenceNumber))
+            }
 
-                if (packet.isKeepAlive && packet.isAck) {
-                    isKeepAliveReceived.set(true)
-                    unsuccessfulKeepAliveCount.set(0)
-                }
+            if (packet.isKeepAlive && packet.isAck) {
+                isKeepAliveReceived.set(true)
+                unsuccessfulKeepAliveCount.set(0)
             }
         }
     }
 
-    private fun resender() {
-        CoroutineScope(Dispatchers.Default).launch {
-            while (true) {
-                if (unconfirmed.isEmpty()) {
-                    delay(100)
-                    continue
-                }
-                println("we have ${unconfirmed.size} unconfirmed packets")
-                unconfirmed.asSequence().take(100).forEach { (seqNumber, packet) ->
-                    if (System.currentTimeMillis() - packet.second > 500) {
-                        packetSender.addPacketToBeginning(packet.first)
-                        unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
-                        println("Resending packet with seqNumber $seqNumber")
-                    }
-                }
-                delay(200)
+    private suspend fun resender() {
+        while (true) {
+            if (unconfirmed.isEmpty()) {
+                delay(50)
+                continue
             }
+            println("we have ${unconfirmed.size} unconfirmed packets")
+            unconfirmed.asSequence().take(500).forEach { (seqNumber, packet) ->
+                if (System.currentTimeMillis() - packet.second > 500) {
+                    packetSender.addPacketToBeginning(packet.first)
+                    unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
+                    println("Resending packet with seqNumber $seqNumber")
+                }
+            }
+            delay(50)
         }
     }
 
-    private fun sendKeepAlive() {
-        CoroutineScope(Dispatchers.Default).launch {
-            while (true) {
-                if (!isKeepAliveReceived.get()) {
-                    unsuccessfulKeepAliveCount.incrementAndGet()
-                    if (unsuccessfulKeepAliveCount.get() > 3) {
-                        println("Connection lost")
-                        break
-                    }
-                } else {
-                    unsuccessfulKeepAliveCount.set(0)
+    private suspend fun sendKeepAlive() {
+        while (true) {
+            if (!isKeepAliveReceived.get()) {
+                unsuccessfulKeepAliveCount.incrementAndGet()
+                if (unsuccessfulKeepAliveCount.get() > 3) {
+                    println("Connection lost")
+                    break
                 }
-                isKeepAliveReceived.set(false)
-                val packet = PacketBuilder.keepAlivePacket(sessionId, currentSequenceNumber)
-                sendPacket(packet)
-                currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
-                Thread.sleep(5000)
+            } else {
+                unsuccessfulKeepAliveCount.set(0)
             }
+            isKeepAliveReceived.set(false)
+            val packet = PacketBuilder.keepAlivePacket(sessionId, currentSequenceNumber)
+            sendPacket(packet)
+            currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
+            Thread.sleep(5000)
         }
     }
 

@@ -2,9 +2,6 @@ package sk.stuba.pks.library
 
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import sk.stuba.pks.old.dto.Packet
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -16,13 +13,11 @@ class PacketSender(
 ) {
     val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
 
-    fun startSendingPackets() {
-        CoroutineScope(Dispatchers.IO).launch {
-            while (true) {
-                val packet: Packet? = packetQueue.poll()
-                packet?.let {
-                    sendPacket(it)
-                }
+    suspend fun startSendingPackets() {
+        while (true) {
+            val packet: Packet? = packetQueue.poll()
+            packet?.let {
+                sendPacket(it)
             }
         }
     }
