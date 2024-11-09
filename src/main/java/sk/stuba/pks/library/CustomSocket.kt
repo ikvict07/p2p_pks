@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import sk.stuba.pks.old.dto.Packet
 import sk.stuba.pks.old.dto.PacketBuilder
+import sk.stuba.pks.old.enums.StaticDefinition
 import sk.stuba.pks.old.model.Message
 import sk.stuba.pks.old.model.SynMessage
 import sk.stuba.pks.old.service.PacketReceiveListener
@@ -18,6 +19,7 @@ import sk.stuba.pks.old.service.mapping.JsonService
 import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
 import java.io.File
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
@@ -29,8 +31,8 @@ import java.util.concurrent.atomic.AtomicInteger
 class CustomSocket(
     private val port: String,
 ) {
-    val address = InetSocketAddress("0.0.0.0", port.toInt()) // Use 0.0.0.0 to bind to all available interfaces
-    val myAddress = IpUtil.getIp()!!
+    private val address = InetSocketAddress("0.0.0.0", port.toInt()) // Use 0.0.0.0 to bind to all available interfaces
+    private val myAddress = IpUtil.getIp()!!
     private val udpSocket = aSocket(SelectorManager(Dispatchers.IO)).udp().bind(address)
     private var currentSequenceNumber = ByteArray(4).apply { fill(0x00) }
     private lateinit var sessionId: ByteArray
@@ -67,6 +69,16 @@ class CustomSocket(
         return true
     }
 
+    suspend fun waitConnection(): String {
+        println("Receiving")
+        val packet = receiveSyncMessage()
+        val remoteAddress = (JsonService.fromPayload(packet.payload) as SynMessage).address
+        sendSynAck()
+        receiveAckMessage()
+
+        return remoteAddress
+    }
+
     private suspend fun sendAck() {
         val packet = PacketBuilder.ackPacket(sessionId, currentSequenceNumber)
         sendPacket(packet)
@@ -89,19 +101,9 @@ class CustomSocket(
         sessionId = ByteArray(4).map { ThreadLocalRandom.current().nextInt(0, 255).toByte() }.toByteArray()
     }
 
-    suspend fun sendSyn() {
+    private suspend fun sendSyn() {
         val packet = PacketBuilder.synPacket(sessionId, currentSequenceNumber, port.toInt(), myAddress)
         sendPacket(packet)
-    }
-
-    suspend fun waitConnection(): String {
-        println("Receiving")
-        val packet = receiveSyncMessage()
-        val remoteAddress = (JsonService.fromPayload(packet.payload) as SynMessage).address
-        sendSynAck()
-        receiveAckMessage()
-
-        return remoteAddress
     }
 
     private suspend fun receiveAckMessage() {
@@ -148,7 +150,7 @@ class CustomSocket(
         return PacketBuilder.getPacketFromBytes(payload)
     }
 
-    suspend fun sendPacket(packet: Packet) {
+    private suspend fun sendPacket(packet: Packet) {
         val data = packet.bytes
 
         val addrs = InetSocketAddress(serverAddress, serverPort)
@@ -159,17 +161,18 @@ class CustomSocket(
 
     fun sendMessage(message: String) {
         val messageBytes = message.toByteArray()
-        val messagePackets = messageBytes.asSequence().chunked(1024)
+        val messagePackets = messageBytes.asSequence().chunked(StaticDefinition.MESSAGE_MAX_SIZE.value - 669)
         val totalPackets = messagePackets.count()
         val localMessageIdHash = messagePackets.hashCode()
         messagePackets.forEachIndexed { index, packet ->
+            val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
             val simpleMessage =
                 // language=JSON
                 """
                 {
                     "type": "simple",
                     "numberOfPackets": "$totalPackets",
-                    "message": "${String(packet.toByteArray())}",
+                    "message": "$base64Payload",
                     "localMessageId": "$localMessageIdHash",
                     "localMessageOffset": "$index"
                 }
@@ -215,6 +218,7 @@ class CustomSocket(
         var received = 0
         packetFlow.collect { packet ->
             if (packet.isCorrupt) return@collect
+            if (!packet.sessionId.contentEquals(sessionId)) return@collect
 
             if (packet.isAck && !packet.isKeepAlive) {
                 val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
@@ -277,12 +281,14 @@ class CustomSocket(
     }
 
     fun sendFile(filePath: String) {
-        val fileBytes = Files.readAllBytes(Paths.get(filePath))
-        val filePackets = fileBytes.asSequence().chunked(750)
+        val filePackets =
+            Files.newInputStream(Paths.get(filePath)).use { inputStream ->
+                inputStream.chunkSequence(StaticDefinition.MESSAGE_MAX_SIZE.value - 669).toList()
+            }
         val totalPackets = filePackets.count()
         val localMessageIdHash = filePackets.hashCode()
         filePackets.forEachIndexed { index, packet ->
-            val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
+            val base64Payload = Base64.getEncoder().encodeToString(packet)
             val simpleMessage =
                 // language=JSON
                 """
@@ -302,4 +308,15 @@ class CustomSocket(
             unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
         }
     }
+
+    private fun InputStream.chunkSequence(chunkSize: Int) =
+        sequence {
+            val buffer = ByteArray(chunkSize)
+            var bytesRead: Int
+            while (true) {
+                bytesRead = this@chunkSequence.read(buffer)
+                if (bytesRead <= 0) break
+                yield(buffer.copyOf(bytesRead))
+            }
+        }
 }

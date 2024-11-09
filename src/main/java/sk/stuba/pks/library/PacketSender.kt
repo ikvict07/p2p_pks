@@ -7,11 +7,11 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class PacketSender(
-    val socket: BoundDatagramSocket,
-    val serverAddress: String,
-    val serverPort: Int,
+    private val socket: BoundDatagramSocket,
+    private val serverAddress: String,
+    private val serverPort: Int,
 ) {
-    val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
+    private val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
 
     suspend fun startSendingPackets() {
         while (true) {
@@ -22,7 +22,7 @@ class PacketSender(
         }
     }
 
-    var sent = 0
+    private var sent = 0
 
     fun addPacket(packet: Packet) {
         packetQueue.add(packet)
