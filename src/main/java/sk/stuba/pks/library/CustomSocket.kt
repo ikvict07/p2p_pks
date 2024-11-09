@@ -20,6 +20,8 @@ import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
 import java.io.File
 import java.io.InputStream
+import java.net.BindException
+import java.net.SocketException
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.*
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.seconds
 
 class CustomSocket(
     private val port: String,
@@ -152,11 +155,24 @@ class CustomSocket(
 
     private suspend fun sendPacket(packet: Packet) {
         val data = packet.bytes
-
-        val addrs = InetSocketAddress(serverAddress, serverPort)
-        val byteReadPacket = ByteReadPacket(data)
-        val datagramPacket = Datagram(byteReadPacket, addrs)
-        udpSocket.send(datagramPacket)
+        var isSent = false
+        withTimeout(30.seconds) {
+            while (!isSent) {
+                try {
+                    val addrs = InetSocketAddress(serverAddress, serverPort)
+                    val byteReadPacket = ByteReadPacket(data)
+                    val datagramPacket = Datagram(byteReadPacket, addrs)
+                    udpSocket.send(datagramPacket)
+                    isSent = true
+                } catch (e: BindException) {
+                    println("Cant bind, retrying")
+                    delay(3.seconds)
+                } catch (e: SocketException) {
+                    println("Cant bind, retrying")
+                    delay(3.seconds)
+                }
+            }
+        }
     }
 
     fun sendMessage(message: String) {
