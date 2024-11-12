@@ -60,7 +60,7 @@ public class Packet {
 
     public void setPayload(byte[] payload) {
         if (payload.length > 1476) {
-            throw new IllegalArgumentException("payload must be at most 1476 bytes long");
+            throw new IllegalArgumentException("payload must be at most 1476 bytes long, but was " + payload.length + " bytes long");
         }
         this.payload = payload;
     }

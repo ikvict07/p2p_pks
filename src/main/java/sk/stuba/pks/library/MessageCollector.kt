@@ -2,12 +2,11 @@ package sk.stuba.pks.library
 
 import sk.stuba.pks.old.model.SimpleMessage
 
-class MessageCollector (
-    val messageId: Int,
-    val totalMessagesLen: Int,
+class MessageCollector(
+    private val messageId: Int,
+    private val totalMessagesLen: Int,
 ) {
-    val messages = mutableListOf<SimpleMessage>()
-
+    private val messages = mutableSetOf<SimpleMessage>()
 
     fun addMessage(message: SimpleMessage) {
         messages.add(message)
@@ -17,14 +16,12 @@ class MessageCollector (
         println(getCompleteMessage())
     }
 
-    fun isComplete(): Boolean {
-        return messages.size == totalMessagesLen
-    }
+    fun isComplete(): Boolean = messages.size == totalMessagesLen
 
-    fun getCompleteMessage(): String {
-        return (
-            messages.sortedBy { it.localMessageOffset }
+    fun getCompleteMessage(): String =
+        (
+            messages
+                .sortedBy { it.localMessageOffset }
                 .joinToString("") { it.message }
         )
-    }
 }

@@ -38,6 +38,7 @@ dependencies {
     implementation("io.ktor:ktor-network:2.3.4")
     implementation("io.ktor:ktor-client-core:2.3.4")
     implementation("org.reflections:reflections:0.10.2")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 }
 
 tasks.withType<Test> {
