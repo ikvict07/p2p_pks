@@ -18,6 +18,7 @@ import sk.stuba.pks.old.service.PacketReceiveListener
 import sk.stuba.pks.old.service.mapping.JsonService
 import sk.stuba.pks.old.util.IpUtil
 import sk.stuba.pks.old.util.PacketUtils
+import sk.stuba.pks.starter.configuration.SocketConfigurationProperties
 import java.io.File
 import java.io.InputStream
 import java.net.BindException
@@ -29,10 +30,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.time.Duration.Companion.seconds
 
 class CustomSocket(
     private val port: String,
+    private val socketConfigurationProperties: SocketConfigurationProperties,
 ) {
     private val address = InetSocketAddress("0.0.0.0", port.toInt()) // Use 0.0.0.0 to bind to all available interfaces
     private val myAddress = IpUtil.getIp()!!
@@ -90,7 +91,7 @@ class CustomSocket(
 
     private suspend fun receiveSynAckMessage() {
         var packet: Packet
-        withTimeout(30_000) {
+        withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             packet = receiveMessage()
             while (!packet.isSynAck) {
                 packet = receiveMessage()
@@ -111,7 +112,7 @@ class CustomSocket(
 
     private suspend fun receiveAckMessage() {
         var packet: Packet
-        withTimeout(30_000) {
+        withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             packet = receiveMessage()
             while (!packet.isAck) {
                 packet = receiveMessage()
@@ -128,7 +129,7 @@ class CustomSocket(
     private suspend fun receiveSyncMessage(): Packet {
         println("Receiving SYN message")
         var packet: Packet
-        withTimeout(30_000) {
+        withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             packet = receiveMessage()
             while (!packet.isSyn) {
                 println("Received packet is not SYN")
@@ -156,7 +157,7 @@ class CustomSocket(
     private suspend fun sendPacket(packet: Packet) {
         val data = packet.bytes
         var isSent = false
-        withTimeout(30.seconds) {
+        withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             while (!isSent) {
                 try {
                     val addrs = InetSocketAddress(serverAddress, serverPort)
@@ -166,10 +167,10 @@ class CustomSocket(
                     isSent = true
                 } catch (e: BindException) {
                     println("Cant bind, retrying")
-                    delay(3.seconds)
+                    delay(socketConfigurationProperties.retryToConnectEveryMs)
                 } catch (e: SocketException) {
                     println("Cant bind, retrying")
-                    delay(3.seconds)
+                    delay(socketConfigurationProperties.retryToConnectEveryMs)
                 }
             }
         }
@@ -218,7 +219,14 @@ class CustomSocket(
 
     suspend fun startSending() {
         coroutineScope {
-            packetSender = PacketSender(udpSocket, serverAddress, serverPort)
+            packetSender =
+                PacketSender(
+                    udpSocket,
+                    serverAddress,
+                    serverPort,
+                    socketConfigurationProperties.connectionTimeoutMs,
+                    socketConfigurationProperties.retryToConnectEveryMs,
+                )
             launch(Dispatchers.IO) { packetSender.startSendingPackets() }
 
             val packetReceiver = PacketReceiver(udpSocket)
@@ -262,18 +270,18 @@ class CustomSocket(
     private suspend fun resender() {
         while (true) {
             if (unconfirmed.isEmpty()) {
-                delay(50)
+                delay(socketConfigurationProperties.messageResendingFrequencyMs)
                 continue
             }
             println("we have ${unconfirmed.size} unconfirmed packets")
             unconfirmed.asSequence().take(500).forEach { (seqNumber, packet) ->
-                if (System.currentTimeMillis() - packet.second > 500) {
+                if (System.currentTimeMillis() - packet.second > socketConfigurationProperties.messageResendingConfirmationTimeMs) {
                     packetSender.addPacketToBeginning(packet.first)
                     unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
                     println("Resending packet with seqNumber $seqNumber")
                 }
             }
-            delay(50)
+            delay(socketConfigurationProperties.messageResendingFrequencyMs)
         }
     }
 
@@ -281,7 +289,7 @@ class CustomSocket(
         while (true) {
             if (!isKeepAliveReceived.get()) {
                 unsuccessfulKeepAliveCount.incrementAndGet()
-                if (unsuccessfulKeepAliveCount.get() > 3) {
+                if (unsuccessfulKeepAliveCount.get() > socketConfigurationProperties.attemptsToReconnect) {
                     println("Connection lost")
                     break
                 }
@@ -292,7 +300,7 @@ class CustomSocket(
             val packet = PacketBuilder.keepAlivePacket(sessionId, currentSequenceNumber)
             sendPacket(packet)
             currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
-            Thread.sleep(5000)
+            delay(socketConfigurationProperties.retryToConnectEveryMs)
         }
     }
 

@@ -2,7 +2,6 @@ package sk.stuba.pks.library
 
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
-import io.ktor.utils.io.errors.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose

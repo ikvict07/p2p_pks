@@ -10,7 +10,7 @@ import sk.stuba.pks.starter.SocketConnection
 @Component
 @Log4j2
 class PksApplicationRunner(
-    val connections: List<SocketConnection>,
+    private val connections: List<SocketConnection>,
 ) : ApplicationRunner {
     override fun run(args: ApplicationArguments?) {
         log.info("Application started")

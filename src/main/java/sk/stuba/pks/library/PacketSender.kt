@@ -9,12 +9,13 @@ import java.net.BindException
 import java.net.SocketException
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedDeque
-import kotlin.time.Duration.Companion.seconds
 
 class PacketSender(
     private val socket: BoundDatagramSocket,
     private val serverAddress: String,
     private val serverPort: Int,
+    private val connectionTimeoutMs: Long,
+    private val reconnectEveryMs: Long,
 ) {
     private val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
 
@@ -41,7 +42,7 @@ class PacketSender(
         sent++
         var isSent = false
         val data = packet.bytes
-        withTimeout(30.seconds) {
+        withTimeout(connectionTimeoutMs) {
             while (!isSent) {
                 try {
                     val addrs = InetSocketAddress(serverAddress, serverPort)
@@ -51,10 +52,10 @@ class PacketSender(
                     isSent = true
                 } catch (e: BindException) {
                     println("Cant bind, retrying")
-                    delay(3.seconds)
+                    delay(reconnectEveryMs)
                 } catch (e: SocketException) {
                     println("Cant bind, retrying")
-                    delay(3.seconds)
+                    delay(reconnectEveryMs)
                 }
             }
             println("Sent packet $sent")

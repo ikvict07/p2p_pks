@@ -15,8 +15,8 @@ import org.springframework.context.annotation.Lazy
 import sk.stuba.pks.library.CustomSocket
 import sk.stuba.pks.library.MessageListener
 import sk.stuba.pks.old.service.PacketReceiveListener
+import sk.stuba.pks.starter.configuration.SocketConfigurationProperties
 import kotlin.properties.Delegates
-import kotlin.time.Duration.Companion.seconds
 
 class SocketConnection(
     val port: String,
@@ -26,8 +26,12 @@ class SocketConnection(
     @Autowired
     @Lazy
     private lateinit var messageListeners: List<MessageListener>
+
+    @Suppress("SpringJavaInjectionPointsAutowiringInspection")
+    @Autowired
+    private lateinit var socketConfigurationProperties: SocketConfigurationProperties
     private var remoteIp: String? = null
-    val socket = CustomSocket(port)
+    lateinit var socket: CustomSocket
     var remotePort by Delegates.notNull<Int>()
     private var isConnectionEstablished = false
     private lateinit var messageReceiveListener: PacketReceiveListener
@@ -44,6 +48,7 @@ class SocketConnection(
     @PostConstruct
     fun init() {
         messageReceiveListener = PacketReceiveListenerImpl(messageListeners)
+        socket = CustomSocket(port, socketConfigurationProperties)
     }
 
     fun initListener() {
@@ -65,7 +70,7 @@ class SocketConnection(
 
     fun getRemoteIp(): String {
         runBlocking {
-            withTimeout(30.seconds) {
+            withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
                 while (remoteIp == null) {
                     Thread.sleep(1000)
                 }
@@ -76,7 +81,7 @@ class SocketConnection(
 
     private suspend fun startSending() {
         coroutineScope {
-            withTimeout(10.seconds) {
+            withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
                 while (true) {
                     if (!isConnectionEstablished) {
                         delay(1000)
