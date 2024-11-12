@@ -8,19 +8,26 @@ import org.springframework.validation.annotation.Validated
 
 @Validated
 @ConfigurationProperties(prefix = "socket")
-data class SocketConfigurationProperties(
-    @field:Min(1) @field:Max(800)
-    val maxPayloadSize: Long = 800,
+class SocketConfigurationProperties {
+    @field:Min(1)
+    @field:Max(800)
+    var maxPayloadSize: Long = 800
+
     @field:Positive
-    val attemptsToReconnect: Long = 3,
+    var attemptsToReconnect: Long = 3
+
     @field:Positive
-    val connectionTimeoutMs: Long = 30_000,
+    var connectionTimeoutMs: Long = 30000
+
     @field:Positive
-    val messageResendingFrequencyMs: Long = 50,
+    var messageResendingFrequencyMs: Long = 50
+
     @field:Positive
-    val messageResendingConfirmationTimeMs: Long = 500,
+    var messageResendingConfirmationTimeMs: Long = 500
+
     @field:Positive
-    val keepAliveFrequencyMs: Long = 5000,
+    var keepAliveFrequencyMs: Long = 5000
+
     @field:Positive
-    val retryToConnectEveryMs: Long = 3_000,
-)
+    var retryToConnectEveryMs: Long = 3000
+}

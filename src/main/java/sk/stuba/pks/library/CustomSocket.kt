@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.min
 
 class CustomSocket(
     private val port: String,
@@ -178,7 +179,13 @@ class CustomSocket(
 
     fun sendMessage(message: String) {
         val messageBytes = message.toByteArray()
-        val messagePackets = messageBytes.asSequence().chunked(StaticDefinition.MESSAGE_MAX_SIZE.value - 669)
+        val messagePackets =
+            messageBytes.asSequence().chunked(
+                min(
+                    (StaticDefinition.MESSAGE_MAX_SIZE.value - 669),
+                    socketConfigurationProperties.maxPayloadSize.toInt(),
+                ),
+            )
         val totalPackets = messagePackets.count()
         val localMessageIdHash = messagePackets.hashCode()
         messagePackets.forEachIndexed { index, packet ->
@@ -300,14 +307,20 @@ class CustomSocket(
             val packet = PacketBuilder.keepAlivePacket(sessionId, currentSequenceNumber)
             sendPacket(packet)
             currentSequenceNumber = PacketUtils.incrementSequenceNumber(currentSequenceNumber)
-            delay(socketConfigurationProperties.retryToConnectEveryMs)
+            delay(socketConfigurationProperties.keepAliveFrequencyMs)
         }
     }
 
     fun sendFile(filePath: String) {
         val filePackets =
             Files.newInputStream(Paths.get(filePath)).use { inputStream ->
-                inputStream.chunkSequence(StaticDefinition.MESSAGE_MAX_SIZE.value - 669).toList()
+                inputStream
+                    .chunkSequence(
+                        min(
+                            StaticDefinition.MESSAGE_MAX_SIZE.value - 669,
+                            socketConfigurationProperties.maxPayloadSize.toInt(),
+                        ),
+                    ).toList()
             }
         val totalPackets = filePackets.count()
         val localMessageIdHash = filePackets.hashCode()
