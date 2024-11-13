@@ -1,12 +1,12 @@
 package sk.stuba.pks.util;
 
 import org.junit.jupiter.api.Test;
-import sk.stuba.pks.old.util.IpUtil;
+import sk.stuba.pks.library.util.IpUtil;
 
 class IpUtilTest {
 
     @Test
-    void getIp() {
+    void getIp() throws Exception {
         System.out.println(IpUtil.getIp());
     }
 

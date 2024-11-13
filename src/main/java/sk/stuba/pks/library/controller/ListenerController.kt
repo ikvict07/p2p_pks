@@ -1,0 +1,31 @@
+package sk.stuba.pks.library.controller
+
+import org.springframework.stereotype.Component
+import sk.stuba.pks.library.service.MessageListener
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.*
+
+@Component
+class ListenerController : MessageListener {
+    override fun onMessageReceive(message: String) {
+        println("Received message: ${String(Base64.getDecoder().decode(message.toByteArray()))}")
+    }
+
+    override fun onFileReceive(
+        fileName: String,
+        fileContent: ByteArray,
+    ) {
+        val directory = Paths.get("src/main/resources")
+        if (!Files.exists(directory)) {
+            Files.createDirectories(directory)
+        }
+
+        val path = directory.resolve(fileName)
+        if (!Files.exists(path)) {
+            Files.createFile(path)
+        }
+        Files.write(path, fileContent)
+        println("Received file: $fileName")
+    }
+}
