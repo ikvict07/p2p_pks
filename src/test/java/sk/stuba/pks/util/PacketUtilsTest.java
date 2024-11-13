@@ -1,7 +1,7 @@
 package sk.stuba.pks.util;
 
 import org.junit.jupiter.api.Test;
-import sk.stuba.pks.old.util.PacketUtils;
+import sk.stuba.pks.library.util.PacketUtils;
 
 import java.util.Arrays;
 

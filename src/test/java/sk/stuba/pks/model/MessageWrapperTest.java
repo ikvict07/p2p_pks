@@ -1,16 +1,16 @@
 package sk.stuba.pks.model;
 
 import org.junit.jupiter.api.Test;
-import sk.stuba.pks.old.model.Message;
-import sk.stuba.pks.old.service.mapping.JsonService;
-import sk.stuba.pks.old.util.IpUtil;
+import sk.stuba.pks.library.model.Message;
+import sk.stuba.pks.library.service.mapping.JsonService;
+import sk.stuba.pks.library.util.IpUtil;
 
 import java.net.UnknownHostException;
 
 class MessageWrapperTest {
 
     @Test
-    void test() throws UnknownHostException {
+    void test() throws Exception {
         Message message = JsonService.parseJson(
                 //json
                 """

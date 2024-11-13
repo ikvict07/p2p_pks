@@ -5,6 +5,8 @@ import org.springframework.context.ApplicationContext
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import sk.stuba.pks.library.enums.SocketConnectionType
+import sk.stuba.pks.library.service.SocketConnection
 
 @Component
 class ConnectionStarter(

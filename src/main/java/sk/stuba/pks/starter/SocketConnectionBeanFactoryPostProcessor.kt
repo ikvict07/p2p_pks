@@ -6,6 +6,9 @@ import org.springframework.beans.factory.config.ConstructorArgumentValues
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
 import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.stereotype.Component
+import sk.stuba.pks.library.enums.SocketConnectionType
+import sk.stuba.pks.library.service.SocketConnection
+import sk.stuba.pks.starter.configuration.ConsoleConfiguration
 
 @Component
 class SocketConnectionBeanFactoryPostProcessor : BeanFactoryPostProcessor {

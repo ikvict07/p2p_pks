@@ -5,7 +5,7 @@ import org.reflections.Reflections.log
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
-import sk.stuba.pks.starter.SocketConnection
+import sk.stuba.pks.library.service.SocketConnection
 import kotlin.system.exitProcess
 
 @Component
