@@ -7,7 +7,7 @@ import java.util.Arrays;
 public class Packet {
     private byte[] sessionId; // 4 bytes
     private byte[] sequenceNumber; // 4 bytes
-    private byte flags; // 4 bits for ackFlag and 4 bits for payloadType : AckFlag: 00-None, 01-Ack, 10-Syn, 11-SynAck; PayloadType: 00-Data, 01-KeepAlive
+    private byte flags; // 4 bits for ackFlag and 4 bits for payloadType : AckFlag: 00-None, 01-Ack, 10-Syn, 11-SynAck; PayloadType: 00-Data, 01-KeepAlive, 10 – FIN
     private byte[] payloadLength; // 2 bytes
     private byte[] payload; // 0-1476 bytes
     private byte[] checksum; // 4 bytes
@@ -125,7 +125,7 @@ public class Packet {
     }
 
     public boolean isData() {
-        return (getPayloadType() & 0b01) == 0;
+        return getPayloadType() == 0;
     }
 
     public boolean isKeepAlive() {
@@ -134,6 +134,10 @@ public class Packet {
 
     public boolean isCorrupt() {
         return !Arrays.equals(checksum, PacketUtils.generateChecksum(this));
+    }
+
+    public boolean isFin() {
+        return (getPayloadType() & 0b10) == 2;
     }
 
     public byte[] getSessionId() {

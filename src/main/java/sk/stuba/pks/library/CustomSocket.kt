@@ -3,6 +3,7 @@ package sk.stuba.pks.library
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -36,6 +37,10 @@ class CustomSocket(
     private val port: String,
     private val socketConfigurationProperties: SocketConfigurationProperties,
 ) {
+    private val isMyFin = AtomicBoolean(false)
+    private val isRemoteFin = AtomicBoolean(false)
+    val isClosed = AtomicBoolean(false)
+
     private val address = InetSocketAddress("0.0.0.0", port.toInt()) // Use 0.0.0.0 to bind to all available interfaces
     private val myAddress = IpUtil.getIp()!!
     private val udpSocket = aSocket(SelectorManager(Dispatchers.IO)).udp().bind(address)
@@ -271,6 +276,37 @@ class CustomSocket(
                 isKeepAliveReceived.set(true)
                 unsuccessfulKeepAliveCount.set(0)
             }
+            if (packet.isFin && !packet.isAck) {
+                println("Received FIN")
+                isRemoteFin.set(true)
+                val confirmFin = PacketBuilder.finAckPacket(sessionId, packet.sequenceNumber)
+                packetSender.sendPacket(confirmFin)
+                if (isMyFin.get() && isRemoteFin.get()) {
+                    isClosed.set(true)
+                    println("This connection is closed")
+                    throw CancellationException("Connection is closed")
+                }
+            }
+            if (packet.isFin && packet.isAck) {
+                println("Received FIN ACK")
+                unconfirmed.clear()
+                packetSender.clearQueue()
+                isMyFin.set(true)
+                if (isMyFin.get() && isRemoteFin.get()) {
+                    isClosed.set(true)
+                    println("This connection is closed")
+                    throw CancellationException("Connection is closed")
+                }
+            }
+        }
+    }
+
+    fun sendFin() {
+        val packet = PacketBuilder.finPacket(sessionId, currentSequenceNumber)
+        packetSender.addPacket(packet)
+        val seqNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
+        if (!isRemoteFin.get()) {
+            unconfirmed[seqNumber] = packet to System.currentTimeMillis()
         }
     }
 

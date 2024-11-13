@@ -61,4 +61,8 @@ class PacketSender(
             println("Sent packet $sent")
         }
     }
+
+    fun clearQueue() {
+        packetQueue.clear()
+    }
 }

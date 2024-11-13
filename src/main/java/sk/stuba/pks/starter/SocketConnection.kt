@@ -99,6 +99,10 @@ class SocketConnection(
         if (!isConnectionEstablished) {
             throw IllegalStateException("Connection not established")
         }
+        if (socket.isClosed.get()) {
+            println("This connection is closed")
+            return
+        }
 
         CoroutineScope(Dispatchers.IO).launch {
             socket.sendMessage(message)
@@ -108,6 +112,10 @@ class SocketConnection(
     fun sendFile(filePath: String) {
         if (!isConnectionEstablished) {
             throw IllegalStateException("Connection not established")
+        }
+        if (socket.isClosed.get()) {
+            println("This connection is closed")
+            return
         }
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -172,6 +180,6 @@ class SocketConnection(
     }
 
     fun closeConnection() {
-        TODO("Not yet implemented")
+        socket.sendFin()
     }
 }

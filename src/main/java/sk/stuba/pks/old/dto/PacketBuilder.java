@@ -154,4 +154,25 @@ public class PacketBuilder {
                 .setPayload(new byte[0])
                 .build();
     }
+
+    public static Packet finPacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b00)
+                .setPayloadType((byte) 0b10)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
+                .build();
+    }
+    public static Packet finAckPacket(byte[] sessionId, byte[] sequenceNumber) {
+        return new PacketBuilder()
+                .setSessionId(sessionId)
+                .setSequenceNumber(sequenceNumber)
+                .setAckFlag((byte) 0b01)
+                .setPayloadType((byte) 0b10)
+                .setPayloadLength(new byte[] {0, 0})
+                .setPayload(new byte[0])
+                .build();
+    }
 }
