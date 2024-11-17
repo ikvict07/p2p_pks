@@ -64,6 +64,8 @@ class CustomSocket(
 
     val packetListeners: MutableList<PacketReceiveListener> = mutableListOf()
 
+    fun isClosedByMe() = isMyFin.get()
+
     suspend fun connect(
         serverAddress: String,
         serverPort: Int,
@@ -181,13 +183,16 @@ class CustomSocket(
         }
     }
 
-    fun sendMessage(message: String) {
+    fun sendMessage(
+        message: String,
+        maxPacketSize: Long,
+    ) {
         val messageBytes = message.toByteArray()
         val messagePackets =
             messageBytes.asSequence().chunked(
                 min(
                     (StaticDefinition.MESSAGE_MAX_SIZE.value - 669),
-                    socketConfigurationProperties.maxPayloadSize.toInt(),
+                    maxPacketSize.toInt(),
                 ),
             )
         val totalPackets = messagePackets.count()
@@ -207,6 +212,51 @@ class CustomSocket(
                 """.trimIndent()
             val packetToSend = prepareMessagePacket(simpleMessage)
             packetSender.addPacket(packetToSend)
+            val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
+            unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
+            println("size is ${unconfirmed.size}")
+        }
+    }
+
+    fun sendCorruptedMessage(
+        message: String,
+        maxPacketSize: Long,
+    ) {
+        val messageBytes = message.toByteArray()
+        val messagePackets =
+            messageBytes.asSequence().chunked(
+                min(
+                    (StaticDefinition.MESSAGE_MAX_SIZE.value - 669),
+                    maxPacketSize.toInt(),
+                ),
+            )
+        val totalPackets = messagePackets.count()
+        val localMessageIdHash = messagePackets.hashCode()
+        messagePackets.forEachIndexed { index, packet ->
+            val base64Payload = Base64.getEncoder().encodeToString(packet.toByteArray())
+            val simpleMessage =
+                // language=JSON
+                """
+                {
+                    "type": "simple",
+                    "numberOfPackets": "$totalPackets",
+                    "message": "$base64Payload",
+                    "localMessageId": "$localMessageIdHash",
+                    "localMessageOffset": "$index"
+                }
+                """.trimIndent()
+            val packetToSend = prepareMessagePacket(simpleMessage)
+            val corrupted =
+                PacketBuilder()
+                    .setSessionId(packetToSend.sessionId)
+                    .setSequenceNumber(packetToSend.sequenceNumber)
+                    .setPayload(packetToSend.payload)
+                    .setPayloadLength(packetToSend.payloadLength)
+                    .setPayloadType(packetToSend.payloadType)
+                    .setAckFlag(packetToSend.ackFlag)
+                    .setChecksum(PacketUtils.intToByteArray(0))
+                    .build()
+            packetSender.addPacket(corrupted)
             val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
             unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
             println("size is ${unconfirmed.size}")
@@ -346,14 +396,17 @@ class CustomSocket(
         }
     }
 
-    fun sendFile(filePath: String) {
+    fun sendFile(
+        filePath: String,
+        maxPacketSize: Long,
+    ) {
         val filePackets =
             Files.newInputStream(Paths.get(filePath)).use { inputStream ->
                 inputStream
                     .chunkSequence(
                         min(
                             StaticDefinition.MESSAGE_MAX_SIZE.value - 669,
-                            socketConfigurationProperties.maxPayloadSize.toInt(),
+                            maxPacketSize.toInt(),
                         ),
                     ).toList()
             }

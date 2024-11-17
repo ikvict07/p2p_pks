@@ -4,12 +4,11 @@ import org.springframework.stereotype.Component
 import sk.stuba.pks.library.service.MessageListener
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.*
 
 @Component
 class ListenerController : MessageListener {
     override fun onMessageReceive(message: String) {
-        println("Received message: ${String(Base64.getDecoder().decode(message.toByteArray()))}")
+        println("Received message: $message")
     }
 
     override fun onFileReceive(

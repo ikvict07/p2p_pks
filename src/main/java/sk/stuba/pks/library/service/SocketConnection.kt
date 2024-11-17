@@ -93,7 +93,10 @@ class SocketConnection(
         }
     }
 
-    fun sendMessage(message: String) {
+    fun sendMessage(
+        message: String,
+        maxPacketSize: Long,
+    ) {
         if (!isConnectionEstablished) {
             throw IllegalStateException("Connection not established")
         }
@@ -103,11 +106,14 @@ class SocketConnection(
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-            socket.sendMessage(message)
+            socket.sendMessage(message, maxPacketSize)
         }
     }
 
-    fun sendFile(filePath: String) {
+    fun sendFile(
+        filePath: String,
+        maxPacketSize: Long,
+    ) {
         if (!isConnectionEstablished) {
             throw IllegalStateException("Connection not established")
         }
@@ -117,7 +123,7 @@ class SocketConnection(
         }
 
         CoroutineScope(Dispatchers.IO).launch {
-            socket.sendFile(filePath)
+            socket.sendFile(filePath, maxPacketSize)
         }
     }
 
@@ -174,6 +180,23 @@ class SocketConnection(
             }
             println("WE ENDED STARTING LISTENING, PORT $port, REMOTE IP $remoteIp, REMOTE PORT $remotePort")
             isConnectionEstablished = true
+        }
+    }
+
+    fun sendCorruptedMessage(
+        message: String,
+        maxPacketSize: Long,
+    ) {
+        if (!isConnectionEstablished) {
+            throw IllegalStateException("Connection not established")
+        }
+        if (socket.isClosed.get()) {
+            println("This connection is closed")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            socket.sendCorruptedMessage(message, maxPacketSize)
         }
     }
 

@@ -1,6 +1,7 @@
 package sk.stuba.pks.library.service
 
 import sk.stuba.pks.library.model.SimpleMessage
+import java.util.Base64
 
 class MessageCollector(
     private val messageId: Int,
@@ -22,6 +23,6 @@ class MessageCollector(
         (
             messages
                 .sortedBy { it.localMessageOffset }
-                .joinToString("") { it.message }
+                .joinToString("") { String(Base64.getDecoder().decode(it.message)) }
         )
 }
