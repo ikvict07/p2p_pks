@@ -11,6 +11,7 @@ import sk.stuba.pks.library.service.SocketConnection
 @Component
 class ConnectionStarter(
     private val applicationContext: ApplicationContext,
+    private val connectionsState: ConnectionsState,
 ) {
     @EventListener(ContextRefreshedEvent::class)
     fun startConnections() {
@@ -19,6 +20,7 @@ class ConnectionStarter(
         connectors.forEach { connector ->
             println("Starting connector on port ${connector.port}")
             connector.initConnector(connector.getRemoteIp(), connector.remotePort)
+            connectionsState.connections[connector.port] = (connector)
         }
     }
 }

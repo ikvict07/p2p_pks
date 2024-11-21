@@ -11,7 +11,10 @@ class PacketReceiveListenerImpl(
     private val messageCollectors = mutableMapOf<Int, MessageCollector>()
     private val fileCollectors = mutableMapOf<String, FileCollector>()
 
-    override fun onPacketReceived(packet: Packet?) {
+    override fun onPacketReceived(
+        packet: Packet?,
+        connection: String?,
+    ) {
         if (packet == null) return
         val message = JsonService.fromPayload(packet.payload)
         if (message is SimpleMessage) {
@@ -20,7 +23,7 @@ class PacketReceiveListenerImpl(
                     MessageCollector(message.localMessageId, message.numberOfPackets)
                 }.addMessage(message)
             if (messageCollectors[message.localMessageId]!!.isComplete()) {
-                notifyListenersMessage(messageCollectors[message.localMessageId]!!.getCompleteMessage())
+                notifyListenersMessage(messageCollectors[message.localMessageId]!!.getCompleteMessage(), connection)
                 messageCollectors.remove(message.localMessageId)
             }
         }
@@ -31,24 +34,28 @@ class PacketReceiveListenerImpl(
                 ) { FileCollector(message.fileName, message.numberOfPackets) }
                 .addPacket(message)
             if (fileCollectors[message.fileName]!!.isComplete()) {
-                notifyListenersFile(message.fileName, fileCollectors[message.fileName]!!.getCompleteFile())
+                notifyListenersFile(message.fileName, fileCollectors[message.fileName]!!.getCompleteFile(), connection)
                 fileCollectors.remove(message.fileName)
             }
         }
     }
 
-    private fun notifyListenersMessage(message: String) {
+    private fun notifyListenersMessage(
+        message: String,
+        connection: String? = null,
+    ) {
         for (listener in messageListeners) {
-            listener.onMessageReceive(message)
+            listener.onMessageReceive(message, connection)
         }
     }
 
     private fun notifyListenersFile(
         fileName: String,
         fileContent: ByteArray,
+        connection: String? = null,
     ) {
         for (listener in messageListeners) {
-            listener.onFileReceive(fileName, fileContent)
+            listener.onFileReceive(fileName, fileContent, connection)
         }
     }
 }
