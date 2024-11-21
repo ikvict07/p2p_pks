@@ -1,12 +1,19 @@
 package sk.stuba.pks
 
+import dev.nesk.akkurate.constraints.builders.isMatching
+import dev.nesk.akkurate.constraints.builders.isNotEmpty
+import dev.nesk.akkurate.constraints.constrain
 import lombok.extern.log4j.Log4j2
 import org.reflections.Reflections.log
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.stereotype.Component
 import sk.stuba.pks.library.service.SocketConnection
+import sk.stuba.pks.library.util.Asker
+import sk.stuba.pks.library.validators.validation.accessors.answer
 import sk.stuba.pks.starter.configuration.SocketConfigurationProperties
+import java.nio.file.Files
+import kotlin.io.path.Path
 import kotlin.system.exitProcess
 
 @Component
@@ -35,17 +42,24 @@ class PksApplicationRunner(
                 exitProcess(0)
             }
             if (availableConnections.isNotEmpty()) {
-                println(
-                    "Write where you want to send message: $availableConnections",
-                )
-                println("Or write 'exit' to exit, change - to change max size of 1 packet")
-                val command = readln()
+                val command =
+                    Asker
+                        .askWithOptions(
+                            "Write where you want to send message: $availableConnections, or write 'exit' to exit, change - to change max size of 1 packet",
+                            availableConnections + listOf("exit", "change"),
+                        ).answer
                 if (command == "exit") {
                     exitProcess(0)
                 }
                 if (command == "change") {
-                    println("Write new max size of 1 packet (1 - 800):")
-                    val size = readln().toLong()
+                    val size =
+                        Asker
+                            .ask("Write new max size of 1 packet (1 - 800): ") {
+                                answer.isNotEmpty()
+                                answer.isMatching("^[0-9]+$".toRegex())
+                                answer.isMatching("^[1-8][0-9]{0,2}$".toRegex())
+                            }.answer
+                            .toLong()
                     customSize = size
                     continue
                 }
@@ -56,10 +70,12 @@ class PksApplicationRunner(
                     }
                 println(connection)
                 connection?.run {
-                    println(
-                        "What to do? (message - to send message, file - to send file, close - to close connection, exit - to exit, corrupted - to send corrupted message)",
-                    )
-                    val message = readln()
+                    val message =
+                        Asker
+                            .askWithOptions(
+                                "What to do? (message - to send message, file - to send file, close - to close connection, back - to go back, corrupted - to send corrupted message)",
+                                listOf("message", "file", "back", "corrupted"),
+                            ).answer
                     when (message) {
                         "message" -> {
                             println("Write message:")
@@ -68,17 +84,23 @@ class PksApplicationRunner(
                         }
 
                         "file" -> {
-                            println("Write file path:")
-                            val filePath = readln()
+                            val filePath =
+                                Asker
+                                    .ask("Write path to file: ", "Invalid path") {
+                                        answer.isNotEmpty()
+                                        answer.constrain {
+                                            Files.exists(Path(it))
+                                        }
+                                    }.answer
                             connection.sendFile(filePath, customSize)
+                        }
+
+                        "back" -> {
+                            return
                         }
 
                         "close" -> {
                             connection.closeConnection()
-                        }
-
-                        "exit" -> {
-                            exitProcess(0)
                         }
 
                         "corrupted" -> {

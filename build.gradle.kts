@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "3.3.4"
     id("io.spring.dependency-management") version "1.1.6"
+    id("com.google.devtools.ksp") version "2.0.20-1.0.25"
     kotlin("jvm")
 }
 
@@ -39,6 +40,8 @@ dependencies {
     implementation("io.ktor:ktor-client-core:2.3.4")
     implementation("org.reflections:reflections:0.10.2")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("dev.nesk.akkurate:akkurate-core:0.10.0")
+    ksp("dev.nesk.akkurate:akkurate-ksp-plugin:0.10.0")
 }
 
 tasks.withType<Test> {

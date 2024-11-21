@@ -8,7 +8,7 @@ import org.springframework.beans.factory.support.GenericBeanDefinition
 import org.springframework.stereotype.Component
 import sk.stuba.pks.library.enums.SocketConnectionType
 import sk.stuba.pks.library.service.SocketConnection
-import sk.stuba.pks.starter.configuration.ConsoleConfiguration
+import sk.stuba.pks.library.util.ConsoleConfiguration
 
 @Component
 class SocketConnectionBeanFactoryPostProcessor : BeanFactoryPostProcessor {
