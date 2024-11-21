@@ -194,6 +194,8 @@ fun SendScreen(
                                     } else {
                                         selectedConnection.sendCorruptedMessage(inputText.value, size.value.toLong())
                                     }
+                                    inputText.value = ""
+                                    size.value = ""
                                 },
                             ) {
                                 Text("Send")
@@ -300,9 +302,9 @@ fun SendScreen(
                                     if (sizeRes is ValidationResult.Failure) {
                                         return@Button
                                     }
-
-                                    println("Sending file: ${path.value}")
                                     selectedConnection.sendFile(path.value, size.value.toLong())
+                                    path.value = ""
+                                    size.value = ""
                                 },
                             ) {
                                 Text("Send")
