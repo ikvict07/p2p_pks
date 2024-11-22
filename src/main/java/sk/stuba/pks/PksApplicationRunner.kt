@@ -1,8 +1,13 @@
 package sk.stuba.pks
 
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
 import dev.nesk.akkurate.constraints.builders.isMatching
 import dev.nesk.akkurate.constraints.builders.isNotEmpty
 import dev.nesk.akkurate.constraints.constrain
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import lombok.extern.log4j.Log4j2
 import org.reflections.Reflections.log
 import org.springframework.boot.ApplicationArguments
@@ -11,7 +16,10 @@ import org.springframework.stereotype.Component
 import sk.stuba.pks.library.service.SocketConnection
 import sk.stuba.pks.library.util.Asker
 import sk.stuba.pks.library.validators.validation.accessors.answer
+import sk.stuba.pks.starter.ConnectionsState
 import sk.stuba.pks.starter.configuration.SocketConfigurationProperties
+import sk.stuba.pks.starter.configuration.UiConfigurationProperties
+import sk.stuba.pks.ui.App
 import java.nio.file.Files
 import kotlin.io.path.Path
 import kotlin.system.exitProcess
@@ -19,12 +27,29 @@ import kotlin.system.exitProcess
 @Component
 @Log4j2
 class PksApplicationRunner(
-    private val connections: List<SocketConnection>,
+    private val connections: MutableList<SocketConnection>,
     private val configurationProperties: SocketConfigurationProperties,
+    private val connectionsState: ConnectionsState,
+    private val uiConfigurationProperties: UiConfigurationProperties,
 ) : ApplicationRunner {
-    override fun run(args: ApplicationArguments?) {
-        log.info("Application started")
+    override fun run(args: ApplicationArguments?): Unit =
+        runBlocking {
+            log.info("Application started")
 
+            if (uiConfigurationProperties.enabled) {
+                launch(Dispatchers.Default) {
+                    application {
+                        Window(onCloseRequest = ::exitApplication) {
+                            App(connectionsState)
+                        }
+                    }
+                }
+            } else {
+                runMainLoop()
+            }
+        }
+
+    private fun runMainLoop() {
         var customSize = configurationProperties.maxPayloadSize
 
         while (true) {
@@ -57,7 +82,9 @@ class PksApplicationRunner(
                             .ask("Write new max size of 1 packet (1 - 800): ") {
                                 answer.isNotEmpty()
                                 answer.isMatching("^[0-9]+$".toRegex())
-                                answer.isMatching("^[1-8][0-9]{0,2}$".toRegex())
+                                answer.constrain {
+                                    it.toInt() in 1..800
+                                }
                             }.answer
                             .toLong()
                     customSize = size
@@ -68,7 +95,6 @@ class PksApplicationRunner(
                         command ==
                             it.getRemoteIp() + ":" + it.socket.serverPort
                     }
-                println(connection)
                 connection?.run {
                     val message =
                         Asker

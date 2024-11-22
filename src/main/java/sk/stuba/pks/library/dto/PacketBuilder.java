@@ -105,17 +105,6 @@ public class PacketBuilder {
                 .build();
     }
 
-    public static Packet ackKeepAlivePacket(byte[] sessionId, byte[] sequenceNumber) {
-        return new PacketBuilder()
-                .setSessionId(sessionId)
-                .setSequenceNumber(sequenceNumber)
-                .setAckFlag((byte) 0b01)
-                .setPayloadType((byte) 0b01)
-                .setPayloadLength(new byte[] {0, 0})
-                .setPayload(new byte[0])
-                .build();
-    }
-
     public static Packet synPacket(byte[] sessionId, byte[] sequenceNumber, int port, String address) {
         PacketBuilder pb = new PacketBuilder()
                 .setSessionId(sessionId)

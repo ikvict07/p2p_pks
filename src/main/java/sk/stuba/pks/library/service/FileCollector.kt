@@ -1,6 +1,7 @@
 package sk.stuba.pks.library.service
 
 import io.ktor.util.collections.*
+import org.reflections.Reflections.log
 import sk.stuba.pks.library.model.FileMessage
 import java.io.ByteArrayOutputStream
 
@@ -15,7 +16,7 @@ class FileCollector(
     }
 
     fun isComplete(): Boolean {
-        println("Packets: ${packets.size}, Total: $totalPackets")
+        log.trace("Packets: ${packets.size}, Total: $totalPackets")
         return packets.size == totalPackets
     }
 
