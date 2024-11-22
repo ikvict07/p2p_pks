@@ -18,6 +18,7 @@ import sk.stuba.pks.library.util.Asker
 import sk.stuba.pks.library.validators.validation.accessors.answer
 import sk.stuba.pks.starter.ConnectionsState
 import sk.stuba.pks.starter.configuration.SocketConfigurationProperties
+import sk.stuba.pks.starter.configuration.UiConfigurationProperties
 import sk.stuba.pks.ui.App
 import java.nio.file.Files
 import kotlin.io.path.Path
@@ -29,20 +30,23 @@ class PksApplicationRunner(
     private val connections: MutableList<SocketConnection>,
     private val configurationProperties: SocketConfigurationProperties,
     private val connectionsState: ConnectionsState,
+    private val uiConfigurationProperties: UiConfigurationProperties,
 ) : ApplicationRunner {
-    override fun run(args: ApplicationArguments?) =
+    override fun run(args: ApplicationArguments?): Unit =
         runBlocking {
             log.info("Application started")
 
-            launch(Dispatchers.Default) {
-                application {
-                    Window(onCloseRequest = ::exitApplication) {
-                        App(connectionsState)
+            if (uiConfigurationProperties.enabled) {
+                launch(Dispatchers.Default) {
+                    application {
+                        Window(onCloseRequest = ::exitApplication) {
+                            App(connectionsState)
+                        }
                     }
                 }
+            } else {
+                runMainLoop(args)
             }
-
-            runMainLoop(args)
         }
 
     private fun runMainLoop(args: ApplicationArguments?) {

@@ -135,7 +135,7 @@ fun SendScreen(
                         ) {
                             Text("Enter max packet size:")
                         }
-                        val size = remember { mutableStateOf("") }
+                        val size = remember { mutableStateOf("800") }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(8.dp),
@@ -195,7 +195,6 @@ fun SendScreen(
                                         selectedConnection.sendCorruptedMessage(inputText.value, size.value.toLong())
                                     }
                                     inputText.value = ""
-                                    size.value = ""
                                 },
                             ) {
                                 Text("Send")
@@ -239,7 +238,7 @@ fun SendScreen(
                         ) {
                             Text("Enter max packet size:")
                         }
-                        val size = remember { mutableStateOf("") }
+                        val size = remember { mutableStateOf("800") }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(8.dp),
@@ -304,7 +303,6 @@ fun SendScreen(
                                     }
                                     selectedConnection.sendFile(path.value, size.value.toLong())
                                     path.value = ""
-                                    size.value = ""
                                 },
                             ) {
                                 Text("Send")

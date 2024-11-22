@@ -4,5 +4,5 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-@EnableConfigurationProperties(SocketConfigurationProperties::class)
+@EnableConfigurationProperties(value = [SocketConfigurationProperties::class, UiConfigurationProperties::class])
 open class SocketConfiguration
