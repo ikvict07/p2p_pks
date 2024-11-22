@@ -17,17 +17,21 @@ import java.util.List;
 public class IpUtil {
 
     public static String getIp() throws Exception {
-//        for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-//            if (networkInterface.isLoopback() || !networkInterface.isUp()) {
-//                continue;
-//            }
-//
-//            for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
-//                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
-//                    return inetAddress.getHostAddress();
-//                }
-//            }
-//        }
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            return getIpWindows();
+        }
+        for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+            if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+                continue;
+            }
+
+            for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
+                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
+                    return inetAddress.getHostAddress();
+                }
+            }
+        }
         try (HttpClient client = HttpClient.newBuilder().build();) {
             val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://checkip.amazonaws.com"))
