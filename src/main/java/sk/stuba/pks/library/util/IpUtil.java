@@ -10,7 +10,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class IpUtil {
 
@@ -55,11 +57,12 @@ public class IpUtil {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "ipconfig");
             Process process = processBuilder.start();
+            List<String> ips = new ArrayList<>();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (line.trim().startsWith("IPv4 Address") || line.trim().startsWith("Адрес IPv4")) {
-                        System.out.println(line.trim());
+                        ips.add(line.trim().split(":")[1].trim());
                     }
                 }
             }
@@ -68,6 +71,7 @@ public class IpUtil {
             if (exitCode != 0) {
                 System.err.println("Command execution failed with exit code: " + exitCode);
             }
+            return ips.getLast();
         } catch (Exception e) {
             e.printStackTrace();
         }
