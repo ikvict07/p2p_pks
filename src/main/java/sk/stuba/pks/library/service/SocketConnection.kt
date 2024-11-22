@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.reflections.Reflections.log
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Lazy
 import sk.stuba.pks.library.enums.SocketConnectionType
@@ -101,7 +102,7 @@ class SocketConnection(
             throw IllegalStateException("Connection not established")
         }
         if (socket.isClosed.get()) {
-            println("This connection is closed")
+            log.error("This connection is closed")
             return
         }
 
@@ -118,7 +119,7 @@ class SocketConnection(
             throw IllegalStateException("Connection not established")
         }
         if (socket.isClosed.get()) {
-            println("This connection is closed")
+            log.error("This connection is closed")
             return
         }
 
@@ -131,7 +132,6 @@ class SocketConnection(
         serverAddress: String,
         serverPort: Int,
     ) {
-        println("Trying to connect")
         coroutineScope {
             val result =
                 async {
@@ -141,18 +141,15 @@ class SocketConnection(
                         false
                     }
                 }
-            println("Awaiting")
             val r: Boolean = result.await()
-            println("Awaited")
             if (r) {
-                println("Connection established on port $port")
+                log.info("Connection established on port $port")
                 remoteIp = serverAddress
                 remotePort = serverPort
             } else {
-                println("Connection failed on port $port")
+                log.error("Connection failed on port $port")
                 throw Exception("Connection failed on port $port")
             }
-            println("WE ENDED CONNECTING, PORT $port, REMOTE IP $remoteIp, REMOTE PORT $remotePort")
             isConnectionEstablished = true
         }
     }
@@ -168,17 +165,14 @@ class SocketConnection(
                     }
                 }
             val r: String = result.await()
-            println("Port $port result $r")
-            println("Awaited")
             if (r.isNotEmpty()) {
-                println("Connection established on port $port")
+                log.info("Connection established on port $port")
                 remoteIp = r
                 remotePort = socket.serverPort
             } else {
-                println("Connection failed on port $port")
+                log.error("Connection failed on port $port")
                 throw Exception("Connection failed on port $port")
             }
-            println("WE ENDED STARTING LISTENING, PORT $port, REMOTE IP $remoteIp, REMOTE PORT $remotePort")
             isConnectionEstablished = true
         }
     }
@@ -191,7 +185,7 @@ class SocketConnection(
             throw IllegalStateException("Connection not established")
         }
         if (socket.isClosed.get()) {
-            println("This connection is closed")
+            log.error("This connection is closed")
             return
         }
 

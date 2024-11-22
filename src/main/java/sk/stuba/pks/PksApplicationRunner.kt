@@ -45,11 +45,11 @@ class PksApplicationRunner(
                     }
                 }
             } else {
-                runMainLoop(args)
+                runMainLoop()
             }
         }
 
-    private fun runMainLoop(args: ApplicationArguments?) {
+    private fun runMainLoop() {
         var customSize = configurationProperties.maxPayloadSize
 
         while (true) {
@@ -95,7 +95,6 @@ class PksApplicationRunner(
                         command ==
                             it.getRemoteIp() + ":" + it.socket.serverPort
                     }
-                println(connection)
                 connection?.run {
                     val message =
                         Asker

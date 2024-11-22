@@ -1,5 +1,6 @@
 package sk.stuba.pks.library.service
 
+import org.reflections.Reflections.log
 import sk.stuba.pks.library.model.SimpleMessage
 import java.util.Base64
 
@@ -12,9 +13,8 @@ class MessageCollector(
     fun addMessage(message: SimpleMessage) {
         messages.add(message)
         if (isComplete()) {
-            println("Message $messageId is complete")
+            log.info("Message $messageId is complete")
         }
-        println(getCompleteMessage())
     }
 
     fun isComplete(): Boolean = messages.size == totalMessagesLen

@@ -13,7 +13,7 @@ class PacketReceiveListenerImpl(
 
     override fun onPacketReceived(
         packet: Packet?,
-        connection: String?,
+        connection: String,
     ) {
         if (packet == null) return
         val message = JsonService.fromPayload(packet.payload)
@@ -42,7 +42,7 @@ class PacketReceiveListenerImpl(
 
     private fun notifyListenersMessage(
         message: String,
-        connection: String? = null,
+        connection: String,
     ) {
         for (listener in messageListeners) {
             listener.onMessageReceive(message, connection)
@@ -52,7 +52,7 @@ class PacketReceiveListenerImpl(
     private fun notifyListenersFile(
         fileName: String,
         fileContent: ByteArray,
-        connection: String? = null,
+        connection: String,
     ) {
         for (listener in messageListeners) {
             listener.onFileReceive(fileName, fileContent, connection)

@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import org.reflections.Reflections.log
 import sk.stuba.pks.library.dto.Packet
 import sk.stuba.pks.library.dto.PacketBuilder
 import sk.stuba.pks.library.enums.StaticDefinition
@@ -81,7 +82,6 @@ class CustomSocket(
     }
 
     suspend fun waitConnection(): String {
-        println("Receiving")
         val packet = receiveSyncMessage()
         val remoteAddress = (JsonService.fromPayload(packet.payload) as SynMessage).address
         sendSynAck()
@@ -134,12 +134,12 @@ class CustomSocket(
     }
 
     private suspend fun receiveSyncMessage(): Packet {
-        println("Receiving SYN message")
+        log.info("Receiving SYN message")
         var packet: Packet
         withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             packet = receiveMessage()
             while (!packet.isSyn) {
-                println("Received packet is not SYN")
+                log.error("Received packet is not SYN")
                 packet = receiveMessage()
             }
         }
@@ -173,10 +173,10 @@ class CustomSocket(
                     udpSocket.send(datagramPacket)
                     isSent = true
                 } catch (e: BindException) {
-                    println("Cant bind, retrying")
+                    log.error("Cant bind, retrying")
                     delay(socketConfigurationProperties.retryToConnectEveryMs)
                 } catch (e: SocketException) {
-                    println("Cant bind, retrying")
+                    log.error("Cant bind, retrying")
                     delay(socketConfigurationProperties.retryToConnectEveryMs)
                 }
             }
@@ -214,7 +214,6 @@ class CustomSocket(
             packetSender.addPacket(packetToSend)
             val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
             unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
-            println("size is ${unconfirmed.size}")
         }
     }
 
@@ -259,7 +258,6 @@ class CustomSocket(
             packetSender.addPacket(corrupted)
             val seqNumber = PacketUtils.byteArrayToInt(packetToSend.sequenceNumber)
             unconfirmed[seqNumber] = packetToSend to System.currentTimeMillis()
-            println("size is ${unconfirmed.size}")
         }
     }
 
@@ -309,7 +307,7 @@ class CustomSocket(
                 val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
                 unconfirmed.remove(sequenceNumber)
                 received++
-                println("Received $received packets")
+                log.info("Received $received packets")
             }
 
             if (packet.isData && !packet.isAck) {
@@ -326,24 +324,24 @@ class CustomSocket(
                 unsuccessfulKeepAliveCount.set(0)
             }
             if (packet.isFin && !packet.isAck) {
-                println("Received FIN")
+                log.info("Received FIN")
                 isRemoteFin.set(true)
                 val confirmFin = PacketBuilder.finAckPacket(sessionId, packet.sequenceNumber)
                 packetSender.sendPacket(confirmFin)
                 if (isMyFin.get() && isRemoteFin.get()) {
                     isClosed.set(true)
-                    println("This connection is closed")
+                    log.error("This connection is closed")
                     throw CancellationException("Connection is closed")
                 }
             }
             if (packet.isFin && packet.isAck) {
-                println("Received FIN ACK")
+                log.info("Received FIN ACK")
                 unconfirmed.clear()
                 packetSender.clearQueue()
                 isMyFin.set(true)
                 if (isMyFin.get() && isRemoteFin.get()) {
                     isClosed.set(true)
-                    println("This connection is closed")
+                    log.error("This connection is closed")
                     throw CancellationException("Connection is closed")
                 }
             }
@@ -365,12 +363,12 @@ class CustomSocket(
                 delay(socketConfigurationProperties.messageResendingFrequencyMs)
                 continue
             }
-            println("we have ${unconfirmed.size} unconfirmed packets")
+            log.trace("we have ${unconfirmed.size} unconfirmed packets")
             unconfirmed.asSequence().take(500).forEach { (seqNumber, packet) ->
                 if (System.currentTimeMillis() - packet.second > socketConfigurationProperties.messageResendingConfirmationTimeMs) {
                     packetSender.addPacketToBeginning(packet.first)
                     unconfirmed[seqNumber] = packet.first to System.currentTimeMillis()
-                    println("Resending packet with seqNumber $seqNumber")
+                    log.trace("Resending packet with seqNumber $seqNumber")
                 }
             }
             delay(socketConfigurationProperties.messageResendingFrequencyMs)
@@ -382,7 +380,7 @@ class CustomSocket(
             if (!isKeepAliveReceived.get()) {
                 unsuccessfulKeepAliveCount.incrementAndGet()
                 if (unsuccessfulKeepAliveCount.get() > socketConfigurationProperties.attemptsToReconnect) {
-                    println("Connection lost")
+                    log.error("Connection lost")
                     break
                 }
             } else {

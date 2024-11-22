@@ -1,5 +1,6 @@
 package sk.stuba.pks.starter
 
+import org.reflections.Reflections.log
 import org.springframework.beans.factory.getBeansOfType
 import org.springframework.context.ApplicationContext
 import org.springframework.context.event.ContextRefreshedEvent
@@ -15,10 +16,11 @@ class ListeningStarter(
 ) {
     @EventListener(ContextRefreshedEvent::class)
     fun startConnections() {
-        val listeners = applicationContext.getBeansOfType<SocketConnection>().values.filter { it.type == SocketConnectionType.LISTENER }
-        println("Number of listeners: ${listeners.size}")
+        val listeners =
+            applicationContext.getBeansOfType<SocketConnection>().values.filter { it.type == SocketConnectionType.LISTENER }
+        log.info("Number of listeners: ${listeners.size}")
         listeners.forEach { listener ->
-            println("Starting listener on port ${listener.port}")
+            log.info("Starting listener on port ${listener.port}")
             listener.initListener()
             connectionsState.connections[listener.port] = (listener)
         }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
+import org.reflections.Reflections.log
 import sk.stuba.pks.library.dto.Packet
 import sk.stuba.pks.library.dto.PacketBuilder
 
@@ -30,7 +31,7 @@ class PacketReceiver(
                             close(e)
                             break
                         } catch (e: Exception) {
-                            println("Some error occurred: trying to reconnect")
+                            log.info("Some error occurred: trying to reconnect")
                             delay(1000)
                         }
                     }

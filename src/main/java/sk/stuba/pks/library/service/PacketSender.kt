@@ -4,6 +4,7 @@ import io.ktor.network.sockets.*
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
+import org.reflections.Reflections.log
 import sk.stuba.pks.library.dto.Packet
 import java.net.BindException
 import java.net.SocketException
@@ -51,14 +52,14 @@ class PacketSender(
                     socket.send(datagramPacket)
                     isSent = true
                 } catch (e: BindException) {
-                    println("Cant bind, retrying")
+                    log.info("Cant bind, retrying")
                     delay(reconnectEveryMs)
                 } catch (e: SocketException) {
-                    println("Cant bind, retrying")
+                    log.info("Cant bind, retrying")
                     delay(reconnectEveryMs)
                 }
             }
-            println("Sent packet $sent")
+            log.info("Sent packet $sent")
         }
     }
 

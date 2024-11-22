@@ -1,5 +1,7 @@
 package sk.stuba.pks.starter
 
+import lombok.extern.log4j.Log4j
+import org.reflections.Reflections.log
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
 import org.springframework.beans.factory.config.ConstructorArgumentValues
@@ -13,6 +15,7 @@ import sk.stuba.pks.library.service.SocketConnection
 import sk.stuba.pks.library.util.ConsoleConfiguration
 
 @Component
+@Log4j
 class SocketConnectionBeanFactoryPostProcessor :
     BeanFactoryPostProcessor,
     EnvironmentAware {
@@ -22,13 +25,13 @@ class SocketConnectionBeanFactoryPostProcessor :
         val registry = beanFactory as BeanDefinitionRegistry
 
         val listeners = ConsoleConfiguration.getListenersPorts(isUiEnabled)
-        println("Will listen on ${listeners.size} ports")
+        log.info("Will listen on ${listeners.size} ports")
         for (port in listeners) {
             registerSocketConnectorBean(registry, port)
         }
 
         val connectors = ConsoleConfiguration.getConnectTo(isUiEnabled)
-        println("Will connect to ${connectors.size} servers")
+        log.info("Will connect to ${connectors.size} servers")
         for (connector in connectors) {
             registerSocketConnectorBean(registry, connector.myPort, connector.ip, connector.port.toInt())
         }
@@ -59,7 +62,7 @@ class SocketConnectionBeanFactoryPostProcessor :
                 }
         }
 
-        println("Registering bean for port $port")
+        log.info("Registering bean for port $port")
         registry.registerBeanDefinition("socketConnection$port", beanDefinition)
     }
 
