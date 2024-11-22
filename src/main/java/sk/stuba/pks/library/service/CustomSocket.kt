@@ -303,6 +303,7 @@ class CustomSocket(
             if (packet.isCorrupt) return@collect
             if (!packet.sessionId.contentEquals(sessionId)) return@collect
 
+            log.info("Payload size is: ${packet.payload.size}")
             if (packet.isAck && !packet.isKeepAlive) {
                 val sequenceNumber = PacketUtils.byteArrayToInt(packet.sequenceNumber)
                 unconfirmed.remove(sequenceNumber)
