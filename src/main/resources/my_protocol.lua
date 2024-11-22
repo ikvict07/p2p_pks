@@ -1,23 +1,23 @@
-local my_protocol = Proto("MyProtocol", "Custom UDP Protocol")
+local my_protocol = Proto("IKCP", "Custom UDP Protocol")
 
-my_protocol.fields.session_id = ProtoField.bytes("myprotocol.session_id", "Session ID")
-my_protocol.fields.sequence_number = ProtoField.uint32("myprotocol.sequence_number", "Sequence Number", base.DEC)
-my_protocol.fields.flags = ProtoField.uint8("myprotocol.flags", "Flags", base.HEX)
-my_protocol.fields.ack_flag = ProtoField.uint8("myprotocol.ack_flag", "Ack Flag", base.DEC, {
+my_protocol.fields.session_id = ProtoField.bytes("IKCP.session_id", "Session ID")
+my_protocol.fields.sequence_number = ProtoField.uint32("IKCP.sequence_number", "Sequence Number", base.DEC)
+my_protocol.fields.flags = ProtoField.uint8("IKCP.flags", "Flags", base.HEX)
+my_protocol.fields.ack_flag = ProtoField.uint8("IKCP.ack_flag", "Ack Flag", base.DEC, {
     [0] = "None",
     [1] = "Ack",
     [2] = "Syn",
     [3] = "SynAck"
 }, 0x03)
 
-my_protocol.fields.payload_type = ProtoField.uint8("myprotocol.payload_type", "Payload Type", base.DEC, {
+my_protocol.fields.payload_type = ProtoField.uint8("IKCP.payload_type", "Payload Type", base.DEC, {
     [0] = "Data",
     [1] = "KeepAlive",
     [2] = "FIN"
 }, 0x0C)
-my_protocol.fields.payload_length = ProtoField.uint16("myprotocol.payload_length", "Payload Length", base.DEC)
-my_protocol.fields.payload = ProtoField.bytes("myprotocol.payload", "Payload")
-my_protocol.fields.checksum = ProtoField.uint32("myprotocol.checksum", "Checksum", base.HEX)
+my_protocol.fields.payload_length = ProtoField.uint16("IKCP.payload_length", "Payload Length", base.DEC)
+my_protocol.fields.payload = ProtoField.bytes("IKCP.payload", "Payload")
+my_protocol.fields.checksum = ProtoField.uint32("IKCP.checksum", "Checksum", base.HEX)
 
 
 function my_protocol.dissector(buffer, pinfo, tree)
@@ -64,9 +64,9 @@ function my_protocol.dissector(buffer, pinfo, tree)
         subtree:add(my_protocol.fields.checksum, buffer(11 + payload_length, 4))
     end
 
-    local messages = "myprotocol.flags == 0"
+    local messages = "IKCP.flags == 0"
     set_color_filter_slot(7, messages)
-    local keepAlive = "myprotocol.payload_type == 1"
+    local keepAlive = "IKCP.payload_type == 1"
     set_color_filter_slot(9, keepAlive)
 
 
