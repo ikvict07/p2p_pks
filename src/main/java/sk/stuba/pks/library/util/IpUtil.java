@@ -17,21 +17,17 @@ import java.util.List;
 public class IpUtil {
 
     public static String getIp() throws Exception {
-        String osName = System.getProperty("os.name").toLowerCase();
-        if (osName.contains("win")) {
-            return getIpWindows();
-        }
-        for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-            if (networkInterface.isLoopback() || !networkInterface.isUp()) {
-                continue;
-            }
-
-            for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
-                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
-                    return inetAddress.getHostAddress();
-                }
-            }
-        }
+//        for (NetworkInterface networkInterface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+//            if (networkInterface.isLoopback() || !networkInterface.isUp()) {
+//                continue;
+//            }
+//
+//            for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
+//                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
+//                    return inetAddress.getHostAddress();
+//                }
+//            }
+//        }
         try (HttpClient client = HttpClient.newBuilder().build();) {
             val request = HttpRequest.newBuilder()
                     .uri(URI.create("https://checkip.amazonaws.com"))
@@ -61,7 +57,7 @@ public class IpUtil {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.trim().startsWith("IPv4 Address") || line.trim().startsWith("Адрес IPv4")) {
+                    if (line.trim().startsWith("IPv4 Address")) {
                         ips.add(line.trim().split(":")[1].trim());
                     }
                 }
