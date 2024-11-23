@@ -2,7 +2,25 @@
 
 I created a program that uses my own protocol over udp.
 
+[Github](https://github.com/ikvict07/p2p_pks.git)
+
 The program supports two modes: CLI and GUI [see How to run](#how-to-run)
+
+---
+
+## Table of content
+
+- [Connection creating](#connection-creating)
+- [Message sending](#message-sending)
+- [Keep-Alive](#keep-alive)
+- [Corrupted message](#sending-a-corrupted-message)
+- [Closing connection](#closing-the-connection)
+- [How to run](#how-to-run)
+- [How to use](#how-to-use)
+- [Protocol](#protocol)
+- [Speed](#speed)
+
+---
 
 ## Connection creating
 
@@ -22,6 +40,8 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
   Connection established
 </p>
 
+---
+
 ## Message sending
 
 | ![Message](static/SendMessageUI.png) |
@@ -40,6 +60,8 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
 |:----------------------------------------------:|
 |               *Message received*               |
 
+---
+
 ## Keep-alive
 
 | ![KeepAliveSent](static/KeepAliveSent.png) |
@@ -49,6 +71,8 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
 | ![KeepAliveConfirmed](static/KeepAliveConfirmed.png) |
 |:----------------------------------------------------:|
 |                *Keep-alive confirmed*                |
+
+---
 
 ## Sending a corrupted message
 
@@ -71,6 +95,8 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
 | ![MessageReceived](static/CorruptedReceived.png) |
 |:------------------------------------------------:|
 |                *Message received*                |
+
+---
 
 ## Closing the connection
 
@@ -102,6 +128,7 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
   Connection closed
 </p>
 
+---
 
 ## How to run
 
@@ -109,8 +136,9 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
 
 `java -jar pks-1.0.0.jar`
 
-#### How to configure
+---
 
+#### How to configure
 
 `java -jar /path/to/jar/pks-1.0.0.jar --key=value --key2=value2`
 
@@ -136,12 +164,16 @@ Where key can be any of:
 
 `ui.enabled` (`true`, `false`)
 
+---
+
 They aren't mandatory as they have default values,
 However, I recommend changing these:
 
 `general.file-save-location`
 and
 `ui.enabled`
+
+---
 
 ## How to use
 
@@ -166,12 +198,11 @@ The Console will ask you:
 Now the program is configured and you can use it
 
 - Choose `ip:port` from the list of available connections
-  - or `change` – to configure packet fragment size
+    - or `change` – to configure packet fragment size
 - Select a type of message you want to send (`message`, `file`, `corrupted`)
-  - or `close` if you want to close this connection
+    - or `close` if you want to close this connection
 - Write a message
-  - or file path
-
+    - or file path
 
 ### GUI mode
 
@@ -181,3 +212,37 @@ the program will run in GUI mode
 All the configuration now will be done using GUI
 
 Sending and reading messages will be done using GUI as well
+
+---
+
+## Protocol
+
+![Header](static/ProtHeader-1.png)
+
+### Keep-Alive
+
+Every `N` seconds node sends an empty packet with a keep-alive flag
+
+If this node doesn't receive packet Ack keep-alive within `x` seconds `y` times
+
+It will automatically disconnect
+
+*`N`, `x`, `y` – are configuration params*
+
+### Receiving confirmation
+
+After Node2 receives a message from Node1, it must send an empty packet with `SequenceNumber` set to the same value as
+a received packet and with `ack` flag
+
+If Node1 doesn't receive this ack packet within a time interval that is configurable, the message is considered as non
+received and will be resented. 
+
+### Closing connection
+
+The Connection will be closed when both side receive FIN packet
+
+---
+
+## Speed
+
+It takes ~20s to read, send and store 100 mb file
