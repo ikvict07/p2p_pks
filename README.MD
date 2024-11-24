@@ -8,6 +8,10 @@ The program supports two modes: CLI and GUI [see How to run](#how-to-run)
 
 ---
 
+### You need java 21 installed to run this program
+
+---
+
 ## Table of content
 
 - [Connection creating](#connection-creating)
