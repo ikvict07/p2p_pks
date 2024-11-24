@@ -103,7 +103,7 @@ class PksApplicationRunner(
                         Asker
                             .askWithOptions(
                                 "What to do? (message - to send message, file - to send file, close - to close connection, back - to go back, corrupted - to send corrupted message)",
-                                listOf("message", "file", "back", "corrupted"),
+                                listOf("message", "file", "close", "back", "corrupted"),
                             ).answer
                     when (message) {
                         "message" -> {
