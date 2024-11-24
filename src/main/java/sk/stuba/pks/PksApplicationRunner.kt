@@ -70,8 +70,8 @@ class PksApplicationRunner(
                 val command =
                     Asker
                         .askWithOptions(
-                            "Write where you want to send message: $availableConnections, or write 'exit' to exit, change - to change max size of 1 packet",
-                            availableConnections + listOf("exit", "change"),
+                            "Write where you want to send message: $availableConnections, or write 'exit' to exit, 'change' - to change max size of 1 packet, 'update' - to update list of connections",
+                            availableConnections + listOf("exit", "change", "update"),
                         ).answer
                 if (command == "exit") {
                     exitProcess(0)
@@ -90,10 +90,13 @@ class PksApplicationRunner(
                     customSize = size
                     continue
                 }
+                if (command == "update") {
+                    continue
+                }
                 val connection =
                     connections.filter { !it.socket.isClosed.get() }.filter { !it.socket.isClosedByMe() }.find {
                         command ==
-                            it.getRemoteIp() + ":" + it.socket.serverPort
+                                it.getRemoteIp() + ":" + it.socket.serverPort
                     }
                 connection?.run {
                     val message =

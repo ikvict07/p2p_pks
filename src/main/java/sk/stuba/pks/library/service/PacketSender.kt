@@ -1,6 +1,7 @@
 package sk.stuba.pks.library.service
 
 import io.ktor.network.sockets.*
+import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
@@ -17,6 +18,7 @@ class PacketSender(
     private val serverPort: Int,
     private val connectionTimeoutMs: Long,
     private val reconnectEveryMs: Long,
+    private val reconnectMaxAttempts: Long,
 ) {
     private val packetQueue: Deque<Packet> = ConcurrentLinkedDeque()
 
@@ -43,6 +45,7 @@ class PacketSender(
         sent++
         var isSent = false
         val data = packet.bytes
+        var attempts = 0
         withTimeout(connectionTimeoutMs) {
             while (!isSent) {
                 try {
@@ -51,10 +54,19 @@ class PacketSender(
                     val datagramPacket = Datagram(byteReadPacket, addrs)
                     socket.send(datagramPacket)
                     isSent = true
+                    attempts = 0
                 } catch (e: BindException) {
+                    if (attempts > reconnectMaxAttempts) {
+                        throw CancellationException("Couldn't reconnect")
+                    }
+                    attempts++
                     log.info("Cant bind, retrying")
                     delay(reconnectEveryMs)
                 } catch (e: SocketException) {
+                    if (attempts > reconnectMaxAttempts) {
+                        throw CancellationException("Couldn't reconnect")
+                    }
+                    attempts++
                     log.info("Cant bind, retrying")
                     delay(reconnectEveryMs)
                 }

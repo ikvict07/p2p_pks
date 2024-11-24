@@ -164,6 +164,7 @@ class CustomSocket(
     private suspend fun sendPacket(packet: Packet) {
         val data = packet.bytes
         var isSent = false
+        var attempts = 0
         withTimeout(socketConfigurationProperties.connectionTimeoutMs) {
             while (!isSent) {
                 try {
@@ -172,10 +173,21 @@ class CustomSocket(
                     val datagramPacket = Datagram(byteReadPacket, addrs)
                     udpSocket.send(datagramPacket)
                     isSent = true
+                    attempts = 0
                 } catch (e: BindException) {
+                    if (attempts > socketConfigurationProperties.attemptsToReconnect) {
+                        isClosed.set(true)
+                        throw CancellationException("Couldn't reconnect")
+                    }
+                    attempts++
                     log.error("Cant bind, retrying")
                     delay(socketConfigurationProperties.retryToConnectEveryMs)
                 } catch (e: SocketException) {
+                    if (attempts > socketConfigurationProperties.attemptsToReconnect) {
+                        isClosed.set(true)
+                        throw CancellationException("Couldn't reconnect")
+                    }
+                    attempts++
                     log.error("Cant bind, retrying")
                     delay(socketConfigurationProperties.retryToConnectEveryMs)
                 }
@@ -277,23 +289,63 @@ class CustomSocket(
     }
 
     suspend fun startSending() {
-        coroutineScope {
-            packetSender =
-                PacketSender(
+        try {
+            coroutineScope {
+                packetSender = PacketSender(
                     udpSocket,
                     serverAddress,
                     serverPort,
                     socketConfigurationProperties.connectionTimeoutMs,
                     socketConfigurationProperties.retryToConnectEveryMs,
+                    socketConfigurationProperties.attemptsToReconnect
                 )
-            launch(Dispatchers.IO) { packetSender.startSendingPackets() }
+                launch(Dispatchers.IO) {
+                    try {
+                        packetSender.startSendingPackets()
+                    } catch (e: Exception) {
+                        log.error("Error occurred: ${e.message}")
+                        throw CancellationException("Connection is closed")
+                    }
+                }
 
-            val packetReceiver = PacketReceiver(udpSocket)
-            packetFlow = packetReceiver.startReceivingPackets()
+                val packetReceiver = PacketReceiver(udpSocket)
+                packetFlow = try {
+                    packetReceiver.startReceivingPackets()
+                } catch (e: Exception) {
+                    log.error("Error occurred: ${e.message}")
+                    throw CancellationException("Connection is closed")
+                }
 
-            launch(Dispatchers.IO) { handleReceivedPackets() }
-            launch(Dispatchers.IO) { resender() }
-            launch(Dispatchers.IO) { sendKeepAlive() }
+                launch(Dispatchers.IO) {
+                    try {
+                        handleReceivedPackets()
+                    } catch (e: Exception) {
+                        log.error("Error occurred: ${e.message}")
+                        throw CancellationException("Connection is closed")
+                    }
+                }
+                launch(Dispatchers.IO) {
+                    try {
+                        resender()
+                    } catch (e: Exception) {
+                        log.error("Error occurred: ${e.message}")
+                        throw CancellationException("Connection is closed")
+                    }
+                }
+                launch(Dispatchers.IO) {
+                    try {
+                        sendKeepAlive()
+                    } catch (e: Exception) {
+                        log.error("Error occurred: ${e.message}")
+                        throw CancellationException("Connection is closed")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            log.error("Error occurred: ${e.message}")
+        } finally {
+            isClosed.set(true)
+            log.info("Cleaned up and marked as closed.")
         }
     }
 
@@ -381,8 +433,8 @@ class CustomSocket(
             if (!isKeepAliveReceived.get()) {
                 unsuccessfulKeepAliveCount.incrementAndGet()
                 if (unsuccessfulKeepAliveCount.get() > socketConfigurationProperties.attemptsToReconnect) {
-                    log.error("Connection lost")
-                    break
+                    isClosed.set(true)
+                    throw CancellationException("Connection is closed")
                 }
             } else {
                 unsuccessfulKeepAliveCount.set(0)
