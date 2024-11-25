@@ -4,13 +4,17 @@ import io.ktor.util.collections.*
 import org.reflections.Reflections.log
 import sk.stuba.pks.library.model.FileMessage
 import java.io.ByteArrayOutputStream
+import java.time.Duration
+import java.time.LocalDateTime
+import java.time.Period
 
 class FileCollector(
     val fileName: String,
-    val totalPackets: Int,
+    private val totalPackets: Int,
 ) {
     private val packets = ConcurrentSet<FileMessage>()
 
+    private val startTime = LocalDateTime.now()
     fun addPacket(message: FileMessage) {
         packets.add(message)
     }
@@ -21,6 +25,7 @@ class FileCollector(
     }
 
     fun getCompleteFile(): ByteArray {
+        log.info("Received $fileName in ${Duration.between(startTime, LocalDateTime.now()).toSeconds()} seconds")
         val result =
             ByteArrayOutputStream().use { buffer ->
                 packets

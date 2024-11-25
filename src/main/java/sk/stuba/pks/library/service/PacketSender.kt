@@ -71,7 +71,7 @@ class PacketSender(
                     delay(reconnectEveryMs)
                 }
             }
-            log.info("Sent packet $sent")
+            log.trace("Sent packet $sent")
         }
     }
 
