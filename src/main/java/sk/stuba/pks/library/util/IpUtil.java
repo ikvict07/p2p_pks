@@ -27,7 +27,7 @@ public class IpUtil {
             }
 
             for (InetAddress inetAddress : Collections.list(networkInterface.getInetAddresses())) {
-                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress()) {
+                if (inetAddress.isSiteLocalAddress() && !inetAddress.isLoopbackAddress() && inetAddress.isMCGlobal()) {
                     return inetAddress.getHostAddress();
                 }
             }
