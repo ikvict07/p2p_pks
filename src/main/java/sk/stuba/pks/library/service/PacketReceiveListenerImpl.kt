@@ -20,8 +20,11 @@ class PacketReceiveListenerImpl(
         if (message is SimpleMessage) {
             messageCollectors
                 .computeIfAbsent(message.localMessageId) {
-                    MessageCollector(message.localMessageId, message.numberOfPackets)
-                }.addMessage(message)
+                    MessageCollector(message.localMessageId.toString(), message.numberOfPackets)
+                }.addMessage(
+                    message,
+                    packet = packet
+                )
             if (messageCollectors[message.localMessageId]!!.isComplete()) {
                 notifyListenersMessage(messageCollectors[message.localMessageId]!!.getCompleteMessage(), connection)
                 messageCollectors.remove(message.localMessageId)
@@ -32,7 +35,7 @@ class PacketReceiveListenerImpl(
                 .computeIfAbsent(
                     message.fileName,
                 ) { FileCollector(message.fileName, message.numberOfPackets) }
-                .addPacket(message)
+                .addMessage(message, packet)
             if (fileCollectors[message.fileName]!!.isComplete()) {
                 notifyListenersFile(message.fileName, fileCollectors[message.fileName]!!.getCompleteFile(), connection)
                 fileCollectors.remove(message.fileName)

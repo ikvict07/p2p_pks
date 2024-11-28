@@ -20,7 +20,7 @@ public interface Message {
     MessageType getType();
     Packet getParentPacket();
 
-
+    byte[] getPayload();
     default public String toJson() {
         ObjectMapper objectMapper = new ObjectMapper();
         try {

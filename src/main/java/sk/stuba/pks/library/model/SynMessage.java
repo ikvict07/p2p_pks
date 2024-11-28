@@ -27,6 +27,11 @@ public class SynMessage implements Message {
         return parentPacket;
     }
 
+    @Override
+    public byte[] getPayload() {
+        return new byte[0];
+    }
+
     public int getPort() {
         return this.port;
     }

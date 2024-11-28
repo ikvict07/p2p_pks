@@ -41,6 +41,11 @@ public class SimpleMessage implements Message {
         return this.parentPacket;
     }
 
+    @Override
+    public byte[] getPayload() {
+        return getMessage().getBytes();
+    }
+
     public void setMessage(String message) {
         this.message = message;
     }
